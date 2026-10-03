@@ -1,0 +1,7 @@
+target/
+.git/
+data/
+logs/
+*.log
+*.docx
+docs/``

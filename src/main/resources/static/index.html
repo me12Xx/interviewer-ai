@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI面试助手</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #EEF2FF 0%, #F9FAFB 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    color: #1F2937;
+}
+.card {
+    width: 100%;
+    max-width: 800px;
+    background: #FFFFFF;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(79, 70, 229, 0.08), 0 1px 3px rgba(0,0,0,0.04);
+    padding: 32px;
+    animation: fadeIn .3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+h1 { font-size: 24px; font-weight: 700; color: #4F46E5; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: #6B7280; margin-bottom: 24px; }
+.badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4F46E5;
+    background: #EEF2FF;
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+}
+label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #374151; }
+.field { margin-bottom: 20px; }
+input[type="text"], input[type="password"], textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 15px;
+    padding: 12px 14px;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 10px;
+    background: #FFFFFF;
+    color: #1F2937;
+    transition: border-color .2s, box-shadow .2s;
+    resize: vertical;
+}
+textarea { min-height: 130px; line-height: 1.6; }
+input:focus, textarea:focus {
+    outline: none;
+    border-color: #4F46E5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+input::placeholder, textarea::placeholder { color: #9CA3AF; }
+button {
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    background: #4F46E5;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: background .2s, transform .1s, box-shadow .2s;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+button:hover:not(:disabled) { background: #4338CA; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35); }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
+button.secondary { background: #FFFFFF; color: #4F46E5; border: 1.5px solid #C7D2FE; box-shadow: none; }
+button.secondary:hover:not(:disabled) { background: #EEF2FF; box-shadow: none; }
+button.full { width: 100%; }
+.actions { display: flex; gap: 12px; margin-top: 4px; }
+.actions button { flex: 1; }
+.question-box {
+    background: #F9FAFB;
+    border-left: 4px solid #4F46E5;
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-size: 16px;
+    line-height: 1.7;
+    margin-bottom: 20px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.score {
+    font-size: 48px;
+    font-weight: 700;
+    color: #4F46E5;
+    line-height: 1;
+}
+.score-unit { font-size: 16px; font-weight: 600; color: #6B7280; margin-left: 4px; }
+.score-wrap { text-align: center; padding: 8px 0 24px; }
+.report-section { margin-bottom: 20px; }
+.report-section h3 { font-size: 14px; font-weight: 600; color: #6B7280; margin-bottom: 8px; }
+.report-content {
+    background: #F9FAFB;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 15px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+#loading {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    z-index: 999;
+    font-size: 14px;
+    color: #4F46E5;
+    font-weight: 600;
+}
+.spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #E0E7FF;
+    border-top-color: #4F46E5;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+/* 打字机光标动画 */
+.typing-cursor::after {
+    content: '|';
+    margin-left: 2px;
+    color: #4F46E5;
+    font-weight: 700;
+    animation: blink 1s infinite;
+}
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+.typing-hint { color: #999; font-style: italic; }
+/* 对话气泡样式 */
+.chat-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+    background: #f9fafb;
+    border-radius: 8px;
+}
+
+.chat-bubble {
+    margin: 12px 0;
+    padding: 12px 16px;
+    border-radius: 16px;
+    max-width: 75%;
+    word-wrap: break-word;
+    line-height: 1.5;
+    position: relative;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeBubbleIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.chat-bubble { animation: fadeBubbleIn 0.3s ease-in; }
+
+.chat-bubble.assistant {
+    background: #e5e7eb;
+    color: #1f2937;
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+}
+
+.chat-bubble.user {
+    background: #4f46e5;
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+    text-align: left;
+}
+
+.chat-role {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.chat-bubble.user .chat-role {
+    color: #e0e7ff;
+}
+@media (max-width: 640px) {
+    body { padding: 0; align-items: stretch; }
+    .card { max-width: 100%; border-radius: 0; min-height: 100vh; padding: 24px 18px; box-shadow: none; }
+    h1 { font-size: 21px; }
+    .score { font-size: 40px; }
+    .actions { flex-direction: column-reverse; }
+}
+</style>
+</head>
+<body>
+
+<div id="registerView" class="card" style="display:none">
+    <h1>欢迎使用 AI 面试助手</h1>
+    <p class="subtitle">检测到有效邀请码，请输入昵称完成注册</p>
+
+    <div class="field">
+        <label for="inviteCodeInput">邀请码</label>
+        <input type="text" id="inviteCodeInput" readonly style="background:#F3F4F6; color:#6B7280">
+    </div>
+
+    <div class="field">
+        <label for="usernameInput">昵称</label>
+        <input type="text" id="usernameInput" placeholder="请输入昵称（2-20字符）" maxlength="20" autocomplete="off">
+    </div>
+
+    <button class="full" id="registerBtn" onclick="register()">完成注册</button>
+
+    <p class="subtitle" style="margin-top:20px; margin-bottom:0">
+        注册后自动保存登录状态，下次访问无需重复注册
+    </p>
+</div>
+
+<div id="noAccessView" class="card" style="display:none">
+    <h1>未检测到访问权限</h1>
+    <p class="subtitle">请联系管理员获取专属邀请链接</p>
+
+    <div class="report-content" style="margin-top:8px">
+        提示：管理员会发送类似以下格式的链接
+        <code style="display:block; margin-top:10px; padding:10px; background:#FFFFFF; border-radius:6px; color:#4F46E5">
+            http://your-domain:8080/?invite=invite_abc123
+        </code>
+    </div>
+</div>
+
+<div id="loginView" class="card" style="display:none">
+    <h1>AI 面试助手</h1>
+    <p class="subtitle">粘贴简历，选择目标职位，开始模拟面试</p>
+
+    <div class="field">
+        <label for="resumeText">简历</label>
+        <textarea id="resumeText" placeholder="粘贴你的简历内容..."></textarea>
+    </div>
+
+    <div class="field">
+        <label for="targetPosition">目标职位</label>
+        <input type="text" id="targetPosition" placeholder="例如：Java 后端开发工程师">
+    </div>
+
+    <button class="full" id="startBtn" onclick="startInterview()">开始面试</button>
+</div>
+
+<div id="interviewView" class="card" style="display:none">
+    <span class="badge" id="questionCount">第 1 题</span>
+    <h1 style="font-size:20px">面试进行中</h1>
+    <p class="subtitle">请认真作答，提交后将生成下一道问题</p>
+
+    <label>问题</label>
+    <div class="question-box" id="questionText"></div>
+
+    <div class="field">
+        <label for="answerInput">你的回答</label>
+        <textarea id="answerInput" placeholder="请输入你的回答..."></textarea>
+    </div>
+
+    <div class="actions">
+        <button class="secondary" id="finishBtn" onclick="finishInterview()">结束面试</button>
+        <button id="submitBtn" onclick="submitAnswer()">提交回答</button>
+    </div>
+</div>
+
+<div id="reportView" class="card" style="display:none">
+    <h1>面试报告</h1>
+    <p class="subtitle" id="reportStage">第一面评估结果</p>
+
+    <div class="score-wrap">
+        <span class="score" id="reportScore">0</span><span class="score-unit">分</span>
+    </div>
+
+    <div style="text-align:center; margin:10px 0;">
+        <span id="reportStatus" style="font-size:18px; font-weight:bold;"></span>
+    </div>
+
+    <div class="report-section">
+        <h3>知识点掌握情况</h3>
+        <div id="proficiencyChart" style="display:flex; gap:20px; align-items:flex-end; justify-content:center; height:150px; margin-top:20px; padding:0 20px;">
+            <!-- 柱状图 JS动态生成 -->
+        </div>
+        <div id="proficiencyLegend" style="margin-top:15px; font-size:14px; color:#666; text-align:center;">
+            <!-- 图例说明 -->
+        </div>
+    </div>
+
+    <div class="report-section">
+        <h3>面试对话回放</h3>
+        <div class="report-content" id="reportFeedback"></div>
+    </div>
+
+    <div class="report-section">
+        <h3>📊 逐题分析</h3>
+        <div id="assessmentsList">
+            <!-- JS动态生成 -->
+        </div>
+    </div>
+
+    <div class="report-section">
+        <h3>薄弱点</h3>
+        <div class="report-content" id="reportWeakPoints">无</div>
+    </div>
+
+    <div id="nextStageButtons">
+        <button class="full primary" id="nextStageBtn" onclick="startNextStage()" style="display:none">
+            进入下一轮
+        </button>
+        <button class="full" id="retryBtn" onclick="retryInterview()" style="display:none">
+            重新开始本轮
+        </button>
+        <button class="full" onclick="reset()">重新开始</button>
+    </div>
+</div>
+
+<div id="loading">
+    <div class="spinner"></div>
+    <span id="loadingText">加载中...</span>
+</div>
+
+<script>
+const API_BASE = '';
+
+const state = {
+    token: localStorage.getItem('authToken') || '',
+    inviteCode: null,
+    sessionId: null,
+    currentQuestion: '',
+    questionCount: 0,
+    isFinished: false,
+    report: null
+};
+
+function showView(viewName) {
+    ['register', 'noAccess', 'login', 'interview', 'report'].forEach(v => {
+        const el = document.getElementById(v + 'View');
+        if (el) el.style.display = 'none';
+    });
+    const target = document.getElementById(viewName + 'View');
+    if (target) target.style.display = 'block';
+    window.scrollTo(0, 0);
+}
+
+async function apiCall(url, method = 'POST', body = null) {
+    const options = {
+        method,
+        headers: { 'Authorization': state.token }
+    };
+    if (body) {
+        options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+        options.body = new URLSearchParams(body).toString();
+    }
+
+    let response;
+    try {
+        response = await fetch(API_BASE + url, options);
+    } catch (e) {
+        throw new Error('网络连接失败，请检查后端服务');
+    }
+
+    if (response.status === 401) {
+        alert('Token 无效或已过期，请重新登录');
+        showView('login');
+        return null;
+    }
+    if (response.status === 403) {
+        alert('没有权限访问该资源');
+        showView('login');
+        return null;
+    }
+    if (!response.ok) {
+        throw new Error('请求失败: ' + response.status);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+    }
+    return await response.text();
+}
+
+async function register() {
+    const username = document.getElementById('usernameInput').value.trim();
+    const inviteCode = document.getElementById('inviteCodeInput').value.trim();
+
+    if (!username) { alert('请输入昵称'); return; }
+    if (username.length < 2 || username.length > 20) {
+        alert('昵称长度必须在2-20个字符之间');
+        return;
+    }
+    if (!inviteCode) { alert('邀请码无效'); return; }
+
+    setButtonsDisabled(true);
+    showLoading(true, '正在注册...');
+
+    try {
+        const response = await fetch(API_BASE + '/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ inviteCode, username }).toString()
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || '注册失败');
+        }
+
+        const data = await response.json();
+
+        state.token = data.accessToken;
+        localStorage.setItem('authToken', data.accessToken);
+
+        alert('注册成功！欢迎 ' + data.username);
+        showView('login');
+    } catch (error) {
+        alert('注册失败：' + error.message);
+    } finally {
+        setButtonsDisabled(false);
+        showLoading(false);
+    }
+}
+
+async function startInterview() {
+    const resumeText = document.getElementById('resumeText').value.trim();
+    const targetPosition = document.getElementById('targetPosition').value.trim();
+
+    if (!state.token) { alert('登录已失效，请重新获取邀请链接'); showView('noAccess'); return; }
+    if (!resumeText || !targetPosition) { alert('请填写完整信息'); return; }
+
+    setButtonsDisabled(true);
+    showLoading(true, '正在创建面试...');
+
+    try {
+        const data = await apiCall('/api/session', 'POST', { resumeText, targetPosition });
+        if (!data) return;
+
+        state.sessionId = data.sessionId;
+        state.questionCount = 1;
+        localStorage.setItem('currentSessionId', data.sessionId);
+
+        const firstQuestion = await apiCall('/api/session/' + state.sessionId + '/first', 'POST');
+        if (firstQuestion === null) return;
+
+        if (firstQuestion && typeof firstQuestion === 'object' && firstQuestion.question) {
+            state.currentQuestion = firstQuestion.question;
+        } else {
+            state.currentQuestion = firstQuestion;
+        }
+
+        localStorage.setItem('currentQuestion', state.currentQuestion);
+        localStorage.setItem('questionCount', '1');
+
+        state.isFinished = false;
+        document.getElementById('answerInput').value = '';
+        showView('interview');
+        renderInterviewView();
+    } catch (error) {
+        alert('启动失败: ' + error.message);
+    } finally {
+        setButtonsDisabled(false);
+        showLoading(false);
+    }
+}
+
+async function submitAnswer() {
+    const answerEl = document.getElementById('answerInput');
+    const answer = answerEl.value.trim();
+    if (!answer) { alert('请输入回答'); return; }
+
+    // 提交回答并获取下一题
+    setButtonsDisabled(true);
+    showLoading(true, '正在评估回答...');
+
+    try {
+        const data = await apiCall('/api/session/' + state.sessionId + '/chat', 'POST', { answer });
+        if (data === null) return;
+
+        if (data.finished) {
+            state.isFinished = true;
+            // 保存已完成的会话ID（用于刷新恢复报告页）
+            localStorage.setItem('finishedSessionId', state.sessionId);
+            localStorage.removeItem('currentSessionId');
+            localStorage.removeItem('currentQuestion');
+            localStorage.removeItem('questionCount');
+            await loadReport();
+        } else {
+            state.currentQuestion = data.question;
+            state.questionCount++;
+            localStorage.setItem('currentQuestion', state.currentQuestion);
+            localStorage.setItem('questionCount', state.questionCount.toString());
+            answerEl.value = '';
+            renderInterviewView();
+        }
+    } catch (error) {
+        alert('提交失败: ' + error.message);
+    } finally {
+        setButtonsDisabled(false);
+        showLoading(false);
+    }
+}
+
+async function finishInterview() {
+    if (!confirm('确定要提前结束面试并生成报告吗？')) return;
+    await loadReport();
+}
+
+async function loadReport() {
+    if (!state.sessionId) { alert('没有进行中的面试'); return; }
+    showLoading(true, '正在生成报告...');
+    try {
+        const report = await apiCall('/api/session/' + state.sessionId + '/report', 'GET');
+        if (report === null) return;
+        state.report = report;
+        state.isFinished = true;
+        showView('report');
+        renderReportView();
+    } catch (error) {
+        alert('加载报告失败: ' + error.message);
+    } finally {
+        showLoading(false);
+    }
+}
+
+function reset() {
+    state.sessionId = null;
+    state.currentQuestion = '';
+    state.questionCount = 0;
+    state.isFinished = false;
+    state.report = null;
+
+    // 清除面试状态（保留 authToken）
+    localStorage.removeItem('currentSessionId');
+    localStorage.removeItem('finishedSessionId');
+    localStorage.removeItem('currentQuestion');
+    localStorage.removeItem('questionCount');
+
+    // 清空输入框
+    const answerInput = document.getElementById('answerInput');
+    if (answerInput) answerInput.value = '';
+    const resumeText = document.getElementById('resumeText');
+    if (resumeText) resumeText.value = '';
+
+    showView('login');
+}
+
+function renderInterviewView() {
+    document.getElementById('questionText').textContent = state.currentQuestion || '';
+    document.getElementById('questionCount').textContent = '第 ' + state.questionCount + ' 题';
+}
+
+function renderReportView() {
+    const r = state.report || {};
+    const score = (r.finalScore === null || r.finalScore === undefined) ? '-' : r.finalScore;
+    const status = r.status || 'UNKNOWN';
+    const stage = r.stage || 1;
+
+    document.getElementById('reportScore').textContent = score;
+
+    const stageName = stage === 1 ? '一面' : stage === 2 ? '二面' : '三面';
+    document.getElementById('reportStage').textContent = `第${stageName}评估结果`;
+
+    const statusText = status === 'PASSED' ? '✅ 通过' : (status === 'FAILED' ? '❌ 未通过' : '评估中');
+    const statusColor = status === 'PASSED' ? '#10b981' : (status === 'FAILED' ? '#ef4444' : '#6B7280');
+    document.getElementById('reportStatus').textContent = statusText;
+    document.getElementById('reportStatus').style.color = statusColor;
+
+    document.getElementById('reportFeedback').innerHTML = formatTranscript(r.transcript);
+
+    if (r.proficiencyDistribution) {
+        renderProficiencyChart(r.proficiencyDistribution);
+    }
+
+    // 加载逐题分析
+    loadAssessments();
+
+    const nextStageBtn = document.getElementById('nextStageBtn');
+    const retryBtn = document.getElementById('retryBtn');
+
+    if (status === 'PASSED' && stage < 3) {
+        const nextStageName = stage === 1 ? '二面' : '三面';
+        nextStageBtn.textContent = `进入${nextStageName}`;
+        nextStageBtn.style.display = 'block';
+        retryBtn.style.display = 'none';
+    } else if (status === 'FAILED') {
+        nextStageBtn.style.display = 'none';
+        retryBtn.textContent = `重新开始${stageName}`;
+        retryBtn.style.display = 'block';
+    } else if (status === 'PASSED' && stage >= 3) {
+        nextStageBtn.style.display = 'none';
+        retryBtn.style.display = 'none';
+    } else {
+        nextStageBtn.style.display = 'none';
+        retryBtn.style.display = 'none';
+    }
+}
+
+function renderProficiencyChart(distribution) {
+    const chartDiv = document.getElementById('proficiencyChart');
+    const legendDiv = document.getElementById('proficiencyLegend');
+
+    if (!distribution) {
+        chartDiv.innerHTML = '<p style="color:#999;">暂无数据</p>';
+        legendDiv.innerHTML = '';
+        return;
+    }
+
+    const labels = {
+        'VERY_FAMILIAR': '非常熟悉',
+        'FAMILIAR_BUT_SHALLOW': '了解但浅',
+        'NOT_FAMILIAR': '不熟悉'
+    };
+
+    const colors = {
+        'VERY_FAMILIAR': '#10b981',
+        'FAMILIAR_BUT_SHALLOW': '#f59e0b',
+        'NOT_FAMILIAR': '#ef4444'
+    };
+
+    const order = ['VERY_FAMILIAR', 'FAMILIAR_BUT_SHALLOW', 'NOT_FAMILIAR'];
+
+    const total = Object.values(distribution).reduce((a, b) => a + b, 0);
+    if (total === 0) {
+        chartDiv.innerHTML = '<p style="color:#999;">暂无评估数据</p>';
+        legendDiv.innerHTML = '';
+        return;
+    }
+
+    let chartHTML = '';
+    for (let key of order) {
+        const count = distribution[key] || 0;
+        const percent = Math.round(count / total * 100);
+        const heightPercent = Math.max(count / total * 100, 5);
+
+        chartHTML += `
+            <div style="flex:1; text-align:center; max-width:120px;">
+                <div style="height:${heightPercent}%; background:${colors[key]}; border-radius:8px 8px 0 0; display:flex; align-items:flex-end; justify-content:center; color:white; font-weight:bold; padding-bottom:5px;">
+                    ${count > 0 ? count : ''}
+                </div>
+                <div style="margin-top:8px; font-size:13px; font-weight:500;">${labels[key]}</div>
+                <div style="margin-top:3px; font-size:12px; color:#999;">${percent}%</div>
+            </div>
+        `;
+    }
+
+    chartDiv.innerHTML = chartHTML;
+    legendDiv.innerHTML = `共评估 <strong>${total}</strong> 个知识点`;
+}
+
+function formatTranscript(transcript) {
+    if (!transcript || transcript.trim() === '') {
+        return '<p style="color:#999; text-align:center; padding:20px;">暂无对话记录</p>';
+    }
+
+    const lines = transcript.split('\n').filter(line => line.trim() !== '');
+    let html = '<div class="chat-container">';
+
+    for (let line of lines) {
+        line = line.trim();
+
+        if (line.startsWith('面试官:') || line.startsWith('面试官：')) {
+            const text = line.replace(/^面试官[：:]\s*/, '');
+            if (text) {
+                html += `
+                    <div class="chat-bubble assistant">
+                        <div class="chat-role">🤖 面试官</div>
+                        <div>${escapeHtml(text)}</div>
+                    </div>
+                `;
+            }
+        } else if (line.startsWith('候选人:') || line.startsWith('候选人：')) {
+            const text = line.replace(/^候选人[：:]\s*/, '');
+            if (text) {
+                html += `
+                    <div class="chat-bubble user">
+                        <div class="chat-role">👤 候选人</div>
+                        <div>${escapeHtml(text)}</div>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    html += '</div>';
+    return html;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+/**
+ * 加载逐题分析数据
+ */
+async function loadAssessments() {
+    if (!state.sessionId) return;
+
+    try {
+        const assessments = await apiCall(`/session/${state.sessionId}/assessments`, 'GET');
+        renderAssessments(assessments);
+    } catch (error) {
+        console.warn('逐题分析加载失败:', error);
+        document.getElementById('assessmentsList').innerHTML = '<p style="color:#999; text-align:center; padding:20px;">暂无详细评估数据</p>';
+    }
+}
+
+/**
+ * 渲染逐题分析
+ */
+function renderAssessments(assessments) {
+    const div = document.getElementById('assessmentsList');
+
+    if (!assessments || assessments.length === 0) {
+        div.innerHTML = '<p style="color:#999; text-align:center; padding:20px;">暂无逐题评估</p>';
+        return;
+    }
+
+    let html = '';
+    assessments.forEach((a, index) => {
+        const score = parseFloat(a.score) || 0;
+        const scoreColor = score >= 8 ? '#10b981' : score >= 6 ? '#f59e0b' : '#ef4444';
+        const scoreIcon = score >= 8 ? '✅' : score >= 6 ? '⚠️' : '❌';
+
+        html += `
+            <div style="border-left: 4px solid ${scoreColor}; padding: 12px 15px; margin-bottom: 15px; background: #f9fafb; border-radius: 6px; transition: all 0.2s;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-weight: 600; color: #1f2937;">第 ${index + 1} 题</span>
+                    <span style="font-size: 18px; font-weight: bold; color: ${scoreColor};">
+                        ${scoreIcon} ${score.toFixed(1)} 分
+                    </span>
+                </div>
+                <div style="color: #4b5563; font-size: 14px; line-height: 1.6; margin-bottom: 8px;">
+                    <strong>问题：</strong>${escapeHtml(a.questionContent)}
+                </div>
+                ${a.feedback && a.feedback.trim() !== '' ? `
+                    <div style="color: #6b7280; font-size: 13px; line-height: 1.5; margin-top: 6px; padding: 8px; background: white; border-radius: 4px;">
+                        <strong style="color: #4f46e5;">💬 反馈：</strong>${escapeHtml(a.feedback)}
+                    </div>
+                ` : ''}
+                ${a.weakPoints && a.weakPoints.trim() !== '' ? `
+                    <div style="color: #dc2626; font-size: 13px; line-height: 1.5; margin-top: 6px; padding: 8px; background: #fef2f2; border-radius: 4px;">
+                        <strong>⚠️ 薄弱点：</strong>${escapeHtml(a.weakPoints)}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+
+    div.innerHTML = html;
+}
+
+async function startNextStage() {
+    if (!confirm('确认进入下一轮面试吗？')) return;
+
+    setButtonsDisabled(true);
+    showLoading(true, '正在准备下一轮面试...');
+
+    try {
+        const data = await apiCall('/api/session/' + state.sessionId + '/next-stage', 'POST');
+        if (data === null) return;
+
+        await enterNewSession(data);
+        alert(data.message || '已进入下一轮');
+    } catch (error) {
+        alert('进入下一轮失败：' + error.message);
+    } finally {
+        setButtonsDisabled(false);
+        showLoading(false);
+    }
+}
+
+async function retryInterview() {
+    if (!confirm('确认重新开始本轮面试吗？')) return;
+
+    setButtonsDisabled(true);
+    showLoading(true, '正在重新开始...');
+
+    try {
+        const data = await apiCall('/api/session/' + state.sessionId + '/retry', 'POST');
+        if (data === null) return;
+
+        await enterNewSession(data);
+        alert(data.message || '已重新开始');
+    } catch (error) {
+        alert('重新开始失败：' + error.message);
+    } finally {
+        setButtonsDisabled(false);
+        showLoading(false);
+    }
+}
+
+async function enterNewSession(data) {
+    state.sessionId = data.sessionId;
+    state.questionCount = 1;
+    state.isFinished = false;
+    state.report = null;
+    localStorage.setItem('currentSessionId', data.sessionId);
+    localStorage.removeItem('finishedSessionId');
+
+    const firstQuestion = await apiCall('/api/session/' + state.sessionId + '/first', 'POST');
+    if (firstQuestion && typeof firstQuestion === 'object' && firstQuestion.question) {
+        state.currentQuestion = firstQuestion.question;
+    } else {
+        state.currentQuestion = firstQuestion;
+    }
+
+    localStorage.setItem('currentQuestion', state.currentQuestion || '');
+    localStorage.setItem('questionCount', '1');
+
+    document.getElementById('answerInput').value = '';
+    showView('interview');
+    renderInterviewView();
+}
+
+function showLoading(show, text) {
+    document.getElementById('loading').style.display = show ? 'flex' : 'none';
+    if (text) document.getElementById('loadingText').textContent = text;
+}
+
+function setButtonsDisabled(disabled) {
+    ['startBtn', 'submitBtn', 'finishBtn', 'nextStageBtn', 'retryBtn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = disabled;
+    });
+}
+
+(function init() {
+    const savedToken = localStorage.getItem('authToken');
+
+    if (savedToken) {
+        state.token = savedToken;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('invite')) {
+            window.history.replaceState({}, document.title, '/');
+        }
+
+        const finishedSessionId = localStorage.getItem('finishedSessionId');
+        const currentSessionId = localStorage.getItem('currentSessionId');
+
+        if (finishedSessionId) {
+            state.sessionId = finishedSessionId;
+            state.isFinished = true;
+            showView('report');
+            loadReport();
+        } else if (currentSessionId) {
+            state.sessionId = currentSessionId;
+            state.currentQuestion = localStorage.getItem('currentQuestion') || '';
+            state.questionCount = parseInt(localStorage.getItem('questionCount') || '1');
+            showView('interview');
+            renderInterviewView();
+        } else {
+            showView('login');
+        }
+    } else {
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteFromUrl = urlParams.get('invite');
+
+        if (inviteFromUrl) {
+            state.inviteCode = inviteFromUrl;
+            showView('register');
+            const inviteInput = document.getElementById('inviteCodeInput');
+            if (inviteInput) {
+                inviteInput.value = inviteFromUrl;
+            }
+            window.history.replaceState({}, document.title, '/');
+        } else {
+            showView('noAccess');
+        }
+    }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+# AI 面试官项目技术文档
+
+## 项目介绍
+
+本项目是一个基于 Claude Opus 5 的多轮追问式技术面试系统。核心功能包括：
+- 智能追问：根据候选人回答动态生成追问
+- 话题切换：自动切换面试话题
+- 自动评分：面试结束后生成评分报告
+
+## 技术栈
+
+- Java 21
+- Spring Boot 4.1.1
+- MyBatis-Plus 3.5.16
+- MySQL 8.0
+- RestClient (Spring 6+)
+- WebFlux (流式响应)
+- 雪花算法 (分布式ID)
+
+## ReAct 原理
+
+ReAct 是 Reasoning + Acting 的缩合，核心思想是让模型在推理过程中调用外部工具。
+
+本项目手写 ReAct Agent，不依赖 LangChain，实现流程：
+1. 模型输出 tool_calls (JSON 格式)
+2. Java 解析 tool_calls，反射调用对应工具方法
+3. 构造 role:tool 消息，content 填工具执行结果
+4. 将 role:tool 消息回填到历史对话
+5. 重新调用模型，模型根据工具结果继续推理
+6. 重复步骤 1-5，直到模型输出 finish_reason=stop
+
+## 三道防线防无限循环
+
+1. 最大轮次限制：maxIterations = 10
+2. finish_reason 检查：每次调用后检查 finish_reason，如果是 stop 则退出循环
+3. 超时熔断：单次调用超时 60s，总超时 120s
+
+## tool_call_id 作用
+
+tool_call_id 是模型输出的每个工具调用的唯一标识。
+
+作用：让模型知道每个工具结果对应哪次调用。
+
+如果一轮返回多个 tool_calls，必须用 tool_call_id 匹配结果，否则模型会混乱。
+
+示例：
+- 模型输出 tool_calls: [{id: "call_1", name: "loadHistory"}, {id: "call_2", name: "askFollowup"}]
+- 执行结果: [{tool_call_id: "call_1", content: "历史记录..."}, {tool_call_id: "call_2", content: "追问已发送"}]
+
+## 指数退避重试机制
+
+中转站限流返回空响应 (HTTP 200 但无内容)，设计指数退避重试：
+- 第 1 次重试：等待 1.5s
+- 第 2 次重试：等待 3s
+- 第 3 次重试：等待 6s
+
+为什么用 1.5 倍而不是 2 倍？
+- 2 倍增长太快 (1s→2s→4s→8s)，第 3 次重试就要等 8 秒，用户体验差
+- 1.5 倍 (1.5s→3s→6s) 相对温和，既能避免限流，又不会等太久
+
+## 评分模块两步调用
+
+第 1 步：调用模型生成评分报告 (纯文本)
+第 2 步：用正则表达式解析评分 (宽松解析)
+
+为什么不用 JSON 模式？
+- 中转站不支持 response_format=json_object
+- 两步调用兼容性更好
+
+## 雪花算法
+
+雪花算法是 Twitter 开源的分布式 ID 生成算法。
+
+结构 (64 bit)：
+- 1 bit: 符号位 (固定为 0)
+- 41 bit: 时间戳 (毫秒级，可用 69 年)
+- 10 bit: 机器 ID (5 bit datacenterId + 5 bit workerId，最多 1024 台机器)
+- 12 bit: 序列号 (同一毫秒内最多 4096 个 ID)
+
+优势：
+- 趋势递增 (按时间排序)
+- 不依赖数据库 (无性能瓶颈)
+- 高并发 (单机每秒可生成 400 万 ID)
+
+本项目使用 MyBatis-Plus 内置雪花算法：@TableId(type = IdType.ASSIGN_ID)
+
+## 流式响应
+
+流式响应使用 SSE (Server-Sent Events) 协议。
+
+后端：
+- Spring WebFlux 的 Flux<String> 返回流式数据
+- MediaType.TEXT_EVENT_STREAM_VALUE 指定内容类型
+
+前端：
+- EventSource API 接收流式数据
+- onmessage 回调处理每次推送
+
+## 数据库设计
+
+4 张表：
+1. interview_session (面试会话)
+2. chat_message (对话历史)
+3. question (题目)
+4. assessment (评分报告)
+
+关系：
+- 1 个 session 有多个 chat_message
+- 1 个 session 有多个 question
+- 1 个 session 有 1 个 assessment
+
+## 工具函数
+
+- loadHistory: 加载历史对话
+- ask_followup: 追问
+- change_topic: 切换话题
+- finish_interview: 结束面试
+
+## 遇到的 bug
+
+Bug #1: 中转站限流返回空响应
+- 现象：HTTP 200 但响应体为空
+- 解决：判空 + 指数退避重试
+
+Bug #2: tool_call_id 映射错误
+- 现象：模型无法识别工具结果
+- 解决：用 Map<toolCallId, result> 映射
+
+Bug #3: 两层超时冲突
+- 现象：RestClient 60s 超时，中转站 30s 断开
+- 解决：客户端超时 < 服务端超时
+
+Bug #4: 事务失效
+- 现象：@Transactional 加在 private 方法不生效
+- 解决：改成 public 方法
+
+## 如果要加缓存
+
+Redis 缓存策略：
+1. 缓存历史对话：key = session:history:{sessionId}，TTL = 1h
+2. 缓存评分报告：key = session:assessment:{sessionId}，TTL = 7d
+3. 缓存击穿：互斥锁 (SET NX EX)
+
+## 如果要加并发
+
+线程池配置：
+- corePoolSize: 5
+- maximumPoolSize: 10
+- workQueue: 100
+- rejectedExecutionHandler: CallerRunsPolicy
+
+使用 CompletableFuture 异步调用：
+```java
+CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> {
+    return aiClient.chat(request);
+}, executor);
+```
+
+## 如果 QPS 上涨 10 倍
+
+优化方案：
+1. 加索引：session_id、created_at
+2. 加缓存：Redis 缓存热点数据
+3. 数据库读写分离：主库写，从库读
+4. 限流：令牌桶算法 (Guava RateLimiter)
+5. 异步化：改成消息队列 (RabbitMQ)

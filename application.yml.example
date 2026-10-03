@@ -1,0 +1,62 @@
+# ====================================
+# AI 面试官 - 配置文件示例
+# ====================================
+# 使用方法：
+#   1. 复制本文件为 application.yml
+#   2. 修改数据库密码
+#   3. 设置环境变量 DEEPSEEK_API_KEY
+# ====================================
+
+spring:
+  datasource:
+    # MySQL 连接配置
+    url: jdbc:mysql://localhost:3306/interviewer_ai?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: root
+    password: 123456  # 改为你的数据库密码
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  configuration:
+    # 下划线 -> 驼峰自动映射（user_id → userId）
+    map-underscore-to-camel-case: true
+    # 控制台打印 SQL，方便调试（生产环境建议关闭）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# ====================================
+# 大模型 API 配置
+# ====================================
+ai:
+  # API 端点（支持 OpenAI 兼容格式）
+  api-url: https://api.deepseek.com/chat/completions
+  
+  # API Key（从环境变量读取，避免泄露）
+  # 设置方法：
+  #   Windows: set DEEPSEEK_API_KEY=sk-xxx
+  #   Linux/Mac: export DEEPSEEK_API_KEY=sk-xxx
+  api-key: ${DEEPSEEK_API_KEY}
+  
+  # 模型名称
+  # DeepSeek: deepseek-flash（快）, deepseek-chat（准）
+  # OpenAI: gpt-4o, gpt-4-turbo
+  model: deepseek-flash
+  
+  # 最大生成 token 数
+  max-tokens: 2048
+
+# ====================================
+# 其他 API 配置示例（注释掉的是备选方案）
+# ====================================
+# OpenAI API:
+# ai:
+#   api-url: https://api.openai.com/v1/chat/completions
+#   api-key: ${OPENAI_API_KEY}
+#   model: gpt-4o
+#   max-tokens: 2048
+
+# ====================================
+# 日志配置（可选）
+# ====================================
+# logging:
+#   level:
+#     com.interviewer.ai: DEBUG  # 项目日志级别
+#     org.apache.ibatis: INFO    # MyBatis 日志级别

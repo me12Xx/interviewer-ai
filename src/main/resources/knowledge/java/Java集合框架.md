@@ -1,0 +1,133 @@
+## Java集合框架概览
+
+Java集合框架主要包括Collection和Map两种类型的接口。Collection接口是单列集合的根接口，主要有List、Set和Queue三个子接口。Map接口是双列集合的根接口，存储键值对映射关系。
+
+List接口表示有序的可重复集合，主要实现类有ArrayList、LinkedList和Vector。List集合中的元素按照插入顺序排列，允许存储重复元素，可以通过索引访问元素。
+
+Set接口表示无序的不可重复集合，主要实现类有HashSet、LinkedHashSet和TreeSet。Set集合不允许存储重复元素，判断重复的依据是元素的equals方法和hashCode方法。
+
+Queue接口表示队列集合，遵循先进先出的原则。主要实现类有PriorityQueue、ArrayDeque和LinkedList。Queue接口扩展了Collection接口，增加了插入、提取和检查等操作。
+
+Map接口表示键值对映射集合，主要实现类有HashMap、LinkedHashMap、TreeMap和Hashtable。Map集合中的键不允许重复，每个键最多只能映射到一个值。
+
+## ArrayList与LinkedList的区别
+
+ArrayList基于动态数组实现，支持快速的随机访问。ArrayList通过索引访问元素的时间复杂度为O(1)，因为数组支持通过下标直接定位元素。但是ArrayList在中间位置插入或删除元素时，需要移动后续所有元素，时间复杂度为O(n)。
+
+LinkedList基于双向链表实现，不支持快速的随机访问。LinkedList通过索引访问元素需要从头节点或尾节点开始遍历，时间复杂度为O(n)。但是LinkedList在已知节点位置的情况下插入或删除元素只需要修改指针，时间复杂度为O(1)。
+
+ArrayList的内存空间是连续的，内存利用率较高，但可能会因为扩容导致内存浪费。LinkedList的内存空间是不连续的，每个节点需要额外存储前驱和后继指针，内存占用相对较大。
+
+ArrayList更适合随机访问频繁的场景，例如根据索引快速查询元素。LinkedList更适合频繁在头部或尾部插入删除元素的场景，例如实现队列或栈。
+
+## ArrayList的扩容机制
+
+ArrayList的默认初始容量为10。当向ArrayList添加元素时，如果当前容量不足，ArrayList会自动进行扩容。
+
+ArrayList的扩容操作通过grow方法实现。扩容时会创建一个新数组，新数组的容量通常是原数组容量的1.5倍。具体计算方式为：新容量等于旧容量加上旧容量右移一位，即旧容量加上旧容量除以2。
+
+扩容后，ArrayList会将旧数组中的所有元素复制到新数组中，然后用新数组替换旧数组。这个复制过程的时间复杂度为O(n)，因此频繁扩容会影响性能。
+
+为了避免频繁扩容带来的性能开销，如果能够预估ArrayList需要存储的元素数量，建议在创建ArrayList时指定初始容量。例如使用ArrayList的带参构造方法new ArrayList(int initialCapacity)来指定初始容量。
+
+ArrayList的最大容量为Integer.MAX_VALUE减8。减8是因为有些虚拟机会在数组中保留一些头信息，尝试分配更大的数组可能导致OutOfMemoryError。
+
+## Array与List的转换
+
+Array转List可以使用Arrays.asList方法。该方法接收一个数组作为参数，返回一个由数组支持的固定大小的List。需要注意的是，Arrays.asList返回的List是Arrays的内部类ArrayList，不是java.util.ArrayList，它是一个固定大小的列表，不支持add和remove操作。
+
+如果需要一个可修改的List，可以使用new ArrayList构造方法包装Arrays.asList的返回值。例如：List<String> list = new ArrayList<>(Arrays.asList(array))。这样创建的ArrayList是可以修改的。
+
+List转Array可以使用List的toArray方法。该方法有两个重载版本：无参的toArray方法返回Object数组，带参的toArray方法可以指定返回数组的类型。推荐使用带参的toArray方法，例如：String[] array = list.toArray(new String[0])。
+
+使用toArray方法时，如果传入的数组长度小于List的大小，方法会创建一个新的数组返回。如果传入的数组长度大于等于List的大小，方法会将元素填充到传入的数组中并返回该数组。传入长度为0的数组是一种常见做法，可以让方法自动创建合适大小的数组。
+
+## Set的三个实现类对比
+
+HashSet基于HashMap实现，底层使用哈希表存储元素。HashSet不保证元素的迭代顺序，元素的顺序可能随时间而改变。HashSet允许存储null值，但只能存储一个null。HashSet的添加、删除和查找操作的时间复杂度都是O(1)。
+
+LinkedHashSet继承自HashSet，底层使用哈希表加双向链表实现。LinkedHashSet维护了元素的插入顺序，迭代时会按照元素的插入顺序返回。LinkedHashSet的性能略低于HashSet，因为需要维护链表结构，但在需要保持插入顺序的场景中很有用。
+
+TreeSet基于TreeMap实现，底层使用红黑树存储元素。TreeSet会对元素进行排序，可以按照元素的自然顺序排序，也可以通过传入Comparator自定义排序规则。TreeSet不允许存储null值，因为null无法与其他元素比较大小。TreeSet的添加、删除和查找操作的时间复杂度都是O(log n)。
+
+三者的选择取决于具体需求：如果不需要保持元素顺序且追求性能，选择HashSet。如果需要保持插入顺序，选择LinkedHashSet。如果需要对元素排序，选择TreeSet。
+
+## Queue与Deque接口
+
+Queue接口表示队列，是一种先进先出的数据结构。Queue接口定义了offer、poll、peek等方法。offer方法用于在队尾添加元素，poll方法用于移除并返回队首元素，peek方法用于返回队首元素但不移除。
+
+Queue接口的方法分为两组：一组方法在操作失败时抛出异常，包括add、remove和element方法。另一组方法在操作失败时返回特殊值，包括offer、poll和peek方法。例如，当队列为空时，remove方法会抛出NoSuchElementException异常，而poll方法会返回null。
+
+Deque接口表示双端队列，是Queue接口的子接口。Deque支持在队列的两端插入和移除元素。Deque可以同时作为队列（先进先出）和栈（后进先出）使用。
+
+Deque接口定义了addFirst、addLast、removeFirst、removeLast、getFirst、getLast等方法。这些方法分别对应在队首和队尾进行插入、删除和查询操作。Deque也提供了push和pop方法，可以将Deque当作栈来使用。
+
+ArrayDeque和LinkedList都实现了Deque接口。ArrayDeque基于可变数组实现，不允许存储null值，在队列两端插入和删除元素的性能优于LinkedList。LinkedList基于双向链表实现，允许存储null值，但作为队列使用时性能不如ArrayDeque。
+
+## PriorityQueue优先队列
+
+PriorityQueue是一个基于优先级堆的无界优先级队列。PriorityQueue中的元素按照自然顺序或者通过构造函数提供的Comparator进行排序。
+
+PriorityQueue的底层实现是数组表示的小顶堆。堆是一种完全二叉树，小顶堆的特点是父节点的值总是小于或等于子节点的值。因此，PriorityQueue的队首元素总是优先级最高（值最小）的元素。
+
+PriorityQueue不允许存储null值，因为null无法与其他元素比较大小。PriorityQueue也不是线程安全的，多线程环境下需要使用PriorityBlockingQueue。
+
+PriorityQueue的offer和poll操作的时间复杂度是O(log n)，peek操作的时间复杂度是O(1)。插入和删除元素时，PriorityQueue会通过上浮和下沉操作来维护堆的性质。
+
+PriorityQueue常用于需要按照优先级处理元素的场景，例如任务调度、Dijkstra最短路径算法等。
+
+## BlockingQueue阻塞队列
+
+BlockingQueue是一个支持阻塞操作的队列接口，继承自Queue接口。BlockingQueue在队列为空时，获取元素的线程会阻塞等待，直到队列中有元素可用。在队列已满时，插入元素的线程会阻塞等待，直到队列中有空闲空间。
+
+BlockingQueue定义了put和take方法。put方法用于向队列中插入元素，如果队列已满则阻塞等待。take方法用于从队列中获取并移除元素，如果队列为空则阻塞等待。
+
+BlockingQueue的主要实现类包括ArrayBlockingQueue、LinkedBlockingQueue、PriorityBlockingQueue和SynchronousQueue等。这些实现类在内部实现、容量限制和性能特点上有所不同。
+
+BlockingQueue是实现生产者消费者模式的理想选择。生产者线程调用put方法向队列中添加元素，消费者线程调用take方法从队列中获取元素，队列会自动处理线程的阻塞和唤醒。
+
+## ArrayBlockingQueue与LinkedBlockingQueue
+
+ArrayBlockingQueue基于数组实现，是一个有界的阻塞队列。ArrayBlockingQueue在创建时必须指定容量，容量一旦指定就不能改变。ArrayBlockingQueue内部使用一个ReentrantLock来控制并发访问，通过两个Condition分别管理插入和取出操作的阻塞。
+
+LinkedBlockingQueue基于链表实现，可以是有界的也可以是无界的。如果不指定容量，LinkedBlockingQueue的容量默认为Integer.MAX_VALUE，相当于无界队列。LinkedBlockingQueue内部使用两个ReentrantLock，分别控制插入和取出操作，因此在高并发场景下吞吐量通常优于ArrayBlockingQueue。
+
+ArrayBlockingQueue使用一个锁控制插入和取出操作，意味着插入和取出操作不能同时进行。LinkedBlockingQueue使用两个锁分离插入和取出操作，允许插入和取出操作并发执行，提高了并发性能。
+
+ArrayBlockingQueue的内存占用相对固定，适合对内存使用有严格要求的场景。LinkedBlockingQueue的每个元素都需要额外的Node对象来封装，内存占用相对较大，但扩展性更好。
+
+## Comparable与Comparator
+
+Comparable是一个排序接口，实现该接口的类可以进行自然排序。Comparable接口定义了compareTo方法，用于比较当前对象与指定对象的大小。如果当前对象小于指定对象，返回负整数；如果相等，返回零；如果大于，返回正整数。
+
+Java中的许多类都实现了Comparable接口，例如String、Integer、Double等。这些类的对象可以直接使用Collections.sort或Arrays.sort方法进行排序，排序结果符合它们的自然顺序。
+
+Comparator是一个比较器接口，可以独立于类的定义来指定比较规则。Comparator接口定义了compare方法，用于比较两个对象的大小。compare方法接收两个参数，返回值的含义与compareTo方法相同。
+
+Comparable和Comparator的主要区别在于：Comparable是在类定义时实现的，表示类的自然顺序，一个类只能有一种自然顺序。Comparator是在类外部定义的，可以为同一个类定义多种不同的比较规则，提供了更大的灵活性。
+
+使用Comparable时，需要修改类的源代码来实现接口。使用Comparator时，不需要修改类的源代码，可以在需要时临时定义比较规则。例如，Collections.sort方法既可以接收实现了Comparable接口的对象列表，也可以额外接收一个Comparator参数来指定排序规则。
+
+## 集合的判空与去重
+
+判断集合是否为空应该优先使用isEmpty方法而不是判断size是否等于0。isEmpty方法的语义更清晰，并且对于某些集合实现（如ConcurrentLinkedQueue），isEmpty方法的性能可能优于size方法。
+
+集合去重的常见方法是使用Set集合。可以将List中的元素添加到HashSet中，利用HashSet不允许重复元素的特性实现去重，然后再将HashSet转换回List。例如：List<String> result = new ArrayList<>(new HashSet<>(list))。
+
+如果需要在去重的同时保持元素的原始顺序，可以使用LinkedHashSet。LinkedHashSet既不允许重复元素，又能保持元素的插入顺序。
+
+使用Stream API也可以方便地实现去重。可以调用distinct方法去除重复元素，例如：list.stream().distinct().collect(Collectors.toList())。distinct方法通过元素的equals方法判断是否重复。
+
+对于自定义对象的去重，需要确保正确重写了equals和hashCode方法。如果没有正确重写这两个方法，去重操作可能无法达到预期效果。
+
+## 集合使用注意事项
+
+集合的初始化应该尽量指定合适的初始容量，避免频繁扩容带来的性能开销。例如，如果预计ArrayList需要存储100个元素，应该使用new ArrayList<>(100)来创建。
+
+使用ArrayList的subList方法返回的子列表是原列表的一个视图，对子列表的修改会影响原列表。subList返回的列表不能进行结构性修改（如添加或删除元素），否则会抛出ConcurrentModificationException异常。
+
+在遍历集合的同时修改集合可能导致ConcurrentModificationException异常。如果需要在遍历过程中删除元素，应该使用Iterator的remove方法，或者使用removeIf方法，或者先收集需要删除的元素再统一删除。
+
+使用HashMap存储对象时，如果对象重写了equals方法，也必须重写hashCode方法。如果equals方法返回true的两个对象的hashCode返回值不同，会导致这两个对象在HashMap中被当作不同的键处理，违反了HashMap的契约。
+
+避免在循环中使用加号拼接字符串，因为每次拼接都会创建新的String对象，导致性能问题和内存浪费。应该使用StringBuilder或StringBuffer来拼接字符串，它们内部使用可变的字符数组，避免了频繁创建对象。
