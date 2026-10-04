@@ -18,7 +18,7 @@ public interface InterviewService {
 
     String getFirstQuestion(Long sessionId);
 
-    Map<String, Object> answer(Long sessionId, String userAnswer);
+    Map<String, Object> answer(Long sessionId, String userAnswer, String requestId);
 
     Map<String, Object> getReport(Long sessionId);
     

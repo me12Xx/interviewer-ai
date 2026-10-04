@@ -5,6 +5,7 @@ import com.interviewer.ai.client.dto.AiMessage;
 import com.interviewer.ai.client.dto.ChatResponse;
 import com.interviewer.ai.client.dto.Tool;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,6 +16,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
+@Tag("external-api")
 @Slf4j
 class FunctionCallingTest {
 

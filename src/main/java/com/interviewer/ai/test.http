@@ -15,19 +15,34 @@ POST http://localhost:8080/api/session?resumeText=张三，熟悉Java集合、�
 POST http://localhost:8080/api/session/{{sid}}/first
 
 ### 3. 第1轮回答（故意答得含糊，触发 ask_followup 追问）
-POST http://localhost:8080/api/session/{{sid}}/chat?answer=HashMap底层是数组加链表，JDK1.8之后加了红黑树
+POST http://localhost:8080/api/session/{{sid}}/chat
+Content-Type: application/json
+
+{"answer":"HashMap底层是数组加链表，JDK1.8之后加了红黑树","requestId":"round-1"}
 
 ### 4. 第2轮回答（补充细节，可能触发 change_topic 换题）
-POST http://localhost:8080/api/session/{{sid}}/chat?answer=链表长度超过8并且数组长度大于64的时候会转成红黑树，这是为了防止hash冲突导致链表过长查询退化成O(n)
+POST http://localhost:8080/api/session/{{sid}}/chat
+Content-Type: application/json
+
+{"answer":"链表长度超过8并且数组长度大于64的时候会转成红黑树，这是为了防止hash冲突导致链表过长查询退化成O(n)","requestId":"round-2"}
 
 ### 5. 第3轮回答
-POST http://localhost:8080/api/session/{{sid}}/chat?answer=ConcurrentHashMap在JDK1.8用CAS加synchronized替代了分段锁，锁粒度从Segment降到了Node级别
+POST http://localhost:8080/api/session/{{sid}}/chat
+Content-Type: application/json
+
+{"answer":"ConcurrentHashMap在JDK1.8用CAS加synchronized替代了分段锁，锁粒度从Segment降到了Node级别","requestId":"round-3"}
 
 ### 6. 第4轮回答
-POST http://localhost:8080/api/session/{{sid}}/chat?answer=我在项目里用Redis做了热点数据缓存，用String类型存用户session，用ZSet做排行榜
+POST http://localhost:8080/api/session/{{sid}}/chat
+Content-Type: application/json
+
+{"answer":"我在项目里用Redis做了热点数据缓存，用String类型存用户session，用ZSet做排行榜","requestId":"round-4"}
 
 ### 7. 第5轮回答（最后一轮，应触发 finish_interview）
-POST http://localhost:8080/api/session/{{sid}}/chat?answer=MySQL索引我用的B加树，联合索引遵循最左前缀原则，做过慢查询优化用explain看执行计划
+POST http://localhost:8080/api/session/{{sid}}/chat
+Content-Type: application/json
+
+{"answer":"MySQL索引我用的B加树，联合索引遵循最左前缀原则，做过慢查询优化用explain看执行计划","requestId":"round-5"}
 
 ### 8. 获取评分报告
 GET http://localhost:8080/api/session/{{sid}}/report

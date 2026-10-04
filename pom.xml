@@ -28,6 +28,8 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <test.groups></test.groups>
+        <test.excluded-groups>external-api,mysql</test.excluded-groups>
     </properties>
     <dependencies>
         <!-- 显式引入 Jackson 依赖 -->
@@ -61,7 +63,19 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
         <dependency>
@@ -87,9 +101,28 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <argLine>-Djdk.attach.allowAttachSelf=true</argLine>
+                    <groups>${test.groups}</groups>
+                    <excludedGroups>${test.excluded-groups}</excludedGroups>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>external-api-tests</id>
+            <properties>
+                <test.groups>external-api</test.groups>
+                <test.excluded-groups></test.excluded-groups>
+            </properties>
+        </profile>
+        <profile>
+            <id>mysql-tests</id>
+            <properties>
+                <test.groups>mysql</test.groups>
+                <test.excluded-groups></test.excluded-groups>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>

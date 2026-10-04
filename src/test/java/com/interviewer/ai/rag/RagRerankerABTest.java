@@ -3,6 +3,7 @@ package com.interviewer.ai.rag;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,6 +28,7 @@ import java.util.Locale;
 @Slf4j
 @SpringBootTest
 @ActiveProfiles("test")
+@Tag("external-api")
 class RagRerankerABTest {
     
     @Autowired

@@ -26,6 +26,8 @@ import com.interviewer.ai.client.dto.Tool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -33,6 +35,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 
 @Service
@@ -65,23 +68,47 @@ public class InterviewServiceImpl implements InterviewService {
     private final PromptLoader promptLoader;
     private final RagService ragService;
     private final ToolExecutor toolExecutor;
+    private final InterviewRequestCoordinator requestCoordinator;
+    private final AgentTurnLogSink turnLogSink;
+    private final AgentMetrics agentMetrics;
 
     public InterviewServiceImpl(InterviewSessionMapper sessionMapper,
                                  ChatMessageMapper chatMessageMapper,
                                  QuestionMapper questionMapper,
                                    AssessmentMapper assessmentMapper,
-                                   AiClient aiClient,
+                                  AiClient aiClient,
                                   PromptLoader promptLoader,
                                   RagService ragService,
-                                  ToolExecutor toolExecutor) {
+                                  ToolExecutor toolExecutor,
+                                  InterviewRequestCoordinator requestCoordinator) {
+        this(sessionMapper, chatMessageMapper, questionMapper, assessmentMapper, aiClient,
+                promptLoader, ragService, toolExecutor, requestCoordinator,
+                NoOpAgentTurnLogSink.INSTANCE, new AgentMetrics(new SimpleMeterRegistry()));
+    }
+
+    @Autowired
+    public InterviewServiceImpl(InterviewSessionMapper sessionMapper,
+                                ChatMessageMapper chatMessageMapper,
+                                QuestionMapper questionMapper,
+                                AssessmentMapper assessmentMapper,
+                                AiClient aiClient,
+                                PromptLoader promptLoader,
+                                RagService ragService,
+                                 ToolExecutor toolExecutor,
+                                 InterviewRequestCoordinator requestCoordinator,
+                                 AgentTurnLogSink turnLogSink,
+                                 AgentMetrics agentMetrics) {
         this.sessionMapper = sessionMapper;
          this.chatMessageMapper = chatMessageMapper;
          this.questionMapper = questionMapper;
          this.assessmentMapper = assessmentMapper;
           this.aiClient = aiClient;
           this.promptLoader = promptLoader;
-          this.ragService = ragService;
-          this.toolExecutor = toolExecutor;
+           this.ragService = ragService;
+            this.toolExecutor = toolExecutor;
+            this.requestCoordinator = requestCoordinator;
+             this.turnLogSink = turnLogSink;
+             this.agentMetrics = agentMetrics;
     }
 
     // ==================== 1. 开始面试 ====================
@@ -122,10 +149,12 @@ public class InterviewServiceImpl implements InterviewService {
         String firstQuestion = null;
         try {
             ToolDecision decision = requestToolDecision(
-                    messages, buildFirstQuestionTools(), session.getId(), ToolExecutionContext.FIRST_QUESTION);
+                    messages, buildFirstQuestionTools(), session.getId(), null,
+                    ToolExecutionContext.FIRST_QUESTION);
             if (decision instanceof AcceptedToolDecision accepted) {
                 ToolExecutionResult execution = toolExecutor.execute(
-                        session, accepted.toolCall(), ToolExecutionContext.FIRST_QUESTION);
+                        session, accepted.toolCall(), ToolExecutionContext.FIRST_QUESTION,
+                        null, String.valueOf(session.getId()));
                 if (execution instanceof ToolExecutionResult.NextQuestion nextQuestion) {
                     firstQuestion = nextQuestion.question();
                 } else if (execution instanceof ToolExecutionResult.Rejected rejected) {
@@ -178,7 +207,22 @@ public class InterviewServiceImpl implements InterviewService {
      * AI 故障或工具参数错误按当前话题降级，不会结束候选人的面试。
      */
     @Override
-    public Map<String, Object> answer(Long sessionId, String userAnswer) {
+    public Map<String, Object> answer(Long sessionId, String userAnswer, String requestId) {
+        if (userAnswer == null || userAnswer.isBlank()) {
+            throw new ApiException(ErrorCode.INVALID_ARGUMENT, "回答不能为空");
+        }
+        if (userAnswer.length() > InterviewConstants.ANSWER_MAX_LENGTH) {
+            throw new ApiException(ErrorCode.INVALID_ARGUMENT,
+                    "回答长度不得超过 " + InterviewConstants.ANSWER_MAX_LENGTH + " 字符");
+        }
+        if (requestId == null || requestId.isBlank()) {
+            throw new ApiException(ErrorCode.INVALID_ARGUMENT, "requestId 不能为空");
+        }
+        return requestCoordinator.execute(sessionId, requestId,
+                () -> processAnswer(sessionId, userAnswer, requestId));
+    }
+
+    private Map<String, Object> processAnswer(Long sessionId, String userAnswer, String requestId) {
         InterviewSession session = sessionMapper.selectById(sessionId);
 
         if (session == null) {
@@ -217,6 +261,7 @@ public class InterviewServiceImpl implements InterviewService {
                     messages,
                     buildAnswerTools(session),
                     sessionId,
+                    requestId,
                     ToolExecutionContext.ANSWER
             );
         } catch (AiServiceException e) {
@@ -257,7 +302,8 @@ public class InterviewServiceImpl implements InterviewService {
         );
 
         ToolExecutionResult execution = toolExecutor.execute(
-                session, toolCall, ToolExecutionContext.ANSWER);
+                session, toolCall, ToolExecutionContext.ANSWER,
+                requestId, String.valueOf(requestId));
 
         if (execution instanceof ToolExecutionResult.Rejected rejected) {
             log.warn(
@@ -312,28 +358,57 @@ public class InterviewServiceImpl implements InterviewService {
      * 3. 工具调用缺少 function。
      */
     private ToolDecision requestToolDecision(List<AiMessage> messages,
-                                             List<Tool> tools,
-                                             Long sessionId,
-                                             ToolExecutionContext context) {
+                                              List<Tool> tools,
+                                              Long sessionId,
+                                              String requestId,
+                                              ToolExecutionContext context) {
 
         for (int correctionCount = 0; correctionCount <= MAX_PROTOCOL_CORRECTIONS; correctionCount++) {
 
-            ChatResponse response = aiClient.chatWithToolsRetry(messages, tools, AI_MAX_RETRIES);
+            long callStart = System.nanoTime();
+            ChatResponse response;
+            try {
+                response = aiClient.chatWithToolsRetry(messages, tools, AI_MAX_RETRIES);
+            } catch (RuntimeException e) {
+                agentMetrics.recordModelCall(context.name(), "ERROR", null,
+                        System.nanoTime() - callStart, null, null);
+                throw e;
+            }
             ChatResponse.AssistantMessage assistantMessage = response.getChoices().getFirst().getMessage();
             List<ChatResponse.ToolCall> toolCalls =
                     assistantMessage.getToolCalls();
+            String toolName = toolCalls != null && toolCalls.size() == 1
+                    && toolCalls.getFirst().getFunction() != null
+                    ? toolCalls.getFirst().getFunction().getName() : null;
+            boolean accepted = toolCalls != null && toolCalls.size() == 1
+                    && toolCalls.getFirst().getFunction() != null
+                    && tools.stream().map(Tool::getFunction).filter(function -> function != null)
+                    .anyMatch(function -> toolName != null && toolName.equals(function.getName()));
+            ChatResponse.Usage usage = response.getUsage();
+            agentMetrics.recordModelCall(context.name(), accepted ? "ACCEPTED" : "DEGRADED", toolName,
+                    System.nanoTime() - callStart,
+                    usage == null ? null : usage.getPromptTokens(),
+                    usage == null ? null : usage.getCompletionTokens());
+            emitTurnLog(new AgentTurnLogEvent(sessionId, requestId, String.valueOf(sessionId),
+                    null, correctionCount + 1, context.name(), null, response.getModel(), toolName,
+                    accepted ? "ACCEPTED" : "DEGRADED",
+                    response.getChoices().getFirst().getFinishReason(), null,
+                    accepted ? null : "PROTOCOL",
+                    usage == null ? null : usage.getPromptTokens(),
+                    usage == null ? null : usage.getCompletionTokens(),
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - callStart), null, null));
 
             if (toolCalls != null && toolCalls.size() == 1) {
                 ChatResponse.ToolCall toolCall = toolCalls.getFirst();
 
                 if (toolCall.getFunction() != null) {
-                    String toolName = toolCall.getFunction().getName();
+                    String currentToolName = toolCall.getFunction().getName();
                     boolean knownTool = List.of("ask_followup", "change_topic", "finish_interview")
-                            .contains(toolName);
+                            .contains(currentToolName);
                     boolean offeredTool = tools.stream()
                             .map(Tool::getFunction)
                             .filter(function -> function != null)
-                            .anyMatch(function -> toolName != null && toolName.equals(function.getName()));
+                            .anyMatch(function -> currentToolName != null && currentToolName.equals(function.getName()));
                     if (knownTool && offeredTool) {
                         return new AcceptedToolDecision(toolCall);
                     }
@@ -342,7 +417,7 @@ public class InterviewServiceImpl implements InterviewService {
                             ? "该工具在当前面试状态下不可用，请只调用本次提供的一个工具。"
                             : "工具名称无效，请只调用已提供的一个工具。";
                     log.warn("[ToolDecision] 工具不允许, sessionId={}, toolName={}, context={}, correction={}",
-                            sessionId, toolName, context, correctionCount);
+                            sessionId, currentToolName, context, correctionCount);
                     if (correctionCount == MAX_PROTOCOL_CORRECTIONS) {
                         return new DegradedToolDecision(DegradeReason.INVALID_TOOL_CALL, null);
                     }
@@ -421,6 +496,14 @@ public class InterviewServiceImpl implements InterviewService {
 
         // 循环边界由 correctionCount 保证，理论上不会执行到这里。
         throw new IllegalStateException("工具决策状态异常");
+    }
+
+    private void emitTurnLog(AgentTurnLogEvent event) {
+        try {
+            turnLogSink.emit(event);
+        } catch (RuntimeException ignored) {
+            log.warn("[AgentTurnLog] 轨迹提交失败，忽略日志错误 traceId={}", event.traceId());
+        }
     }
 
     /**

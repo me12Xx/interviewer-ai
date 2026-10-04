@@ -37,6 +37,8 @@ public class InterviewSession {
     private Boolean isArchived;
     private Long previousSessionId;
     private BigDecimal finalScore;
+    private String leaseOwner;
+    private LocalDateTime leaseExpiresAt;
 
     public InterviewSession() {}
 

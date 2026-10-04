@@ -9,6 +9,9 @@ public class InterviewConstants {
     
     /** 简历最大长度（字符数） */
     public static final int RESUME_MAX_LENGTH = 2000;
+
+    /** 单次回答最大长度（Java 字符数） */
+    public static final int ANSWER_MAX_LENGTH = 5000;
     
     /** 硬上限：最大轮次（达到则强制结束，防止面试永不结束） */
     public static final int MAX_ROUNDS_HARD = 15;

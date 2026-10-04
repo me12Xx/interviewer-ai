@@ -47,8 +47,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("请求参数异常: {}", ex.getMessage());
-        return response(ErrorCode.INVALID_ARGUMENT, ex.getMessage());
+        log.warn("请求参数异常", ex);
+        return response(ErrorCode.INVALID_ARGUMENT, "请求参数无效");
     }
 
     @ExceptionHandler(Exception.class)

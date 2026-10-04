@@ -30,3 +30,9 @@ admin:
 
 app:
   base-url: ${APP_BASE_URL:http://10.124.238.180:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus

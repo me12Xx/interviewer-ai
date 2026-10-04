@@ -14,6 +14,7 @@ import com.interviewer.ai.mapper.InterviewSessionMapper;
 import com.interviewer.ai.mapper.QuestionMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,7 @@ class ToolExecutorTest {
     private ChatMessageMapper chatMessageMapper;
     private QuestionMapper questionMapper;
     private AssessmentMapper assessmentMapper;
+    private AgentTurnLogSink turnLogSink;
     private ToolExecutor toolExecutor;
 
     @BeforeEach
@@ -47,12 +49,13 @@ class ToolExecutorTest {
         chatMessageMapper = mock(ChatMessageMapper.class);
         questionMapper = mock(QuestionMapper.class);
         assessmentMapper = mock(AssessmentMapper.class);
+        turnLogSink = mock(AgentTurnLogSink.class);
         toolExecutor = new ToolExecutor(
                 sessionMapper,
                 chatMessageMapper,
                 questionMapper,
                 assessmentMapper,
-                new ObjectMapper());
+                new ObjectMapper(), turnLogSink);
     }
 
     @Test
@@ -132,6 +135,28 @@ class ToolExecutorTest {
         verify(questionMapper).insert(any(Question.class));
         verify(chatMessageMapper).insert(any(ChatMessage.class));
         verify(assessmentMapper).insert((com.interviewer.ai.Assessment) any());
+    }
+
+    @Test
+    void successfulToolExecutionEmitsStructuredTrace() {
+        InterviewSession session = session(1, 1, "IN_PROGRESS");
+        when(chatMessageMapper.selectOne(any())).thenReturn(userAnswer());
+        when(questionMapper.selectOne(any())).thenReturn(currentQuestion());
+        when(chatMessageMapper.selectList(any())).thenReturn(List.of());
+        when(sessionMapper.update(any(), any())).thenReturn(1);
+
+        toolExecutor.execute(session, toolCall("change_topic", Map.of(
+                "question", "解释线程池拒绝策略",
+                "reason", "回答完整",
+                "proficiency_level", "VERY_FAMILIAR")), ToolExecutionContext.ANSWER);
+
+        ArgumentCaptor<AgentTurnLogEvent> captor = ArgumentCaptor.forClass(AgentTurnLogEvent.class);
+        verify(turnLogSink).emit(captor.capture());
+        AgentTurnLogEvent event = captor.getValue();
+        assertEquals("change_topic", event.toolName());
+        assertEquals("EXECUTED", event.decision());
+        assertEquals("VERY_FAMILIAR", event.proficiencyLevel());
+        assertEquals("ANSWER", event.contextType());
     }
 
     @Test

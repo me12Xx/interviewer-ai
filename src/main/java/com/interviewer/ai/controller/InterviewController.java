@@ -2,7 +2,9 @@ package com.interviewer.ai.controller;
 
 import com.interviewer.ai.InterviewSession;
 import com.interviewer.ai.auth.UserContext;
+import com.interviewer.ai.controller.dto.ChatRequest;
 import com.interviewer.ai.service.InterviewService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -85,8 +87,8 @@ public class InterviewController {
      * 用户回答当前题，AI 返回下一题（或追问）
      * HTTP 请求示例：
      * POST http://localhost:8080/api/session/123/chat
-     * Content-Type: application/x-www-form-urlencoded
-     * answer=HashMap底层是数组+链表+红黑树
+     * Content-Type: application/json
+     * {"answer":"HashMap底层是数组+链表+红黑树","requestId":"answer-123"}
      * 返回示例（JSON - 进行中）：
      * {
      *   "question": "那什么时候链表会转成红黑树？",
@@ -103,10 +105,10 @@ public class InterviewController {
      */
     @PostMapping("/{id}/chat")
     public Map<String, Object> chat(
-            @PathVariable Long id,           // 会话 ID
-            @RequestParam String answer      // 用户回答
+            @PathVariable Long id,
+            @Valid @RequestBody ChatRequest request
     ) {
-        return interviewService.answer(id, answer);  // 调用 Service，返回 Map
+        return interviewService.answer(id, request.answer(), request.requestId());
     }
 
     // ========== 接口 4：查看评分报告 ==========

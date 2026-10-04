@@ -10,9 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-    @SpringBootTest(properties = "typesafe.enabled=false")
-    @Tag("mysql")
-    class UserMapperIntegrationTest {
+@SpringBootTest(properties = "typesafe.enabled=false")
+@Tag("mysql")
+class UserMapperIntegrationTest {
 
         @Autowired
         private UserMapper userMapper;
@@ -28,4 +28,4 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
             assertTrue(user.getIsActive());
             assertNotNull(user.getCreatedAt());
         }
-    }
+}

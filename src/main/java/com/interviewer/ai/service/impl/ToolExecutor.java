@@ -19,7 +19,9 @@ import com.interviewer.ai.mapper.QuestionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -37,58 +39,127 @@ public class ToolExecutor {
     private final QuestionMapper questionMapper;
     private final AssessmentMapper assessmentMapper;
     private final ObjectMapper objectMapper;
+    private final AgentTurnLogSink turnLogSink;
+    private final AgentMetrics agentMetrics;
+
+    public ToolExecutor(InterviewSessionMapper sessionMapper,
+                        ChatMessageMapper chatMessageMapper,
+                         QuestionMapper questionMapper,
+                         AssessmentMapper assessmentMapper,
+                         ObjectMapper objectMapper) {
+        this(sessionMapper, chatMessageMapper, questionMapper, assessmentMapper, objectMapper,
+                NoOpAgentTurnLogSink.INSTANCE, new AgentMetrics(new SimpleMeterRegistry()));
+    }
 
     public ToolExecutor(InterviewSessionMapper sessionMapper,
                         ChatMessageMapper chatMessageMapper,
                         QuestionMapper questionMapper,
                         AssessmentMapper assessmentMapper,
-                        ObjectMapper objectMapper) {
+                        ObjectMapper objectMapper,
+                        AgentTurnLogSink turnLogSink) {
+        this(sessionMapper, chatMessageMapper, questionMapper, assessmentMapper, objectMapper,
+                turnLogSink, new AgentMetrics(new SimpleMeterRegistry()));
+    }
+
+    @Autowired
+    public ToolExecutor(InterviewSessionMapper sessionMapper,
+                         ChatMessageMapper chatMessageMapper,
+                         QuestionMapper questionMapper,
+                          AssessmentMapper assessmentMapper,
+                          ObjectMapper objectMapper,
+                          AgentTurnLogSink turnLogSink,
+                          AgentMetrics agentMetrics) {
         this.sessionMapper = sessionMapper;
         this.chatMessageMapper = chatMessageMapper;
         this.questionMapper = questionMapper;
         this.assessmentMapper = assessmentMapper;
         this.objectMapper = objectMapper;
+        this.turnLogSink = turnLogSink;
+        this.agentMetrics = agentMetrics;
     }
 
     @Transactional(rollbackFor = Exception.class)
     public ToolExecutionResult execute(InterviewSession session,
                                        ChatResponse.ToolCall toolCall,
                                        ToolExecutionContext context) {
+        return execute(session, toolCall, context, null, String.valueOf(session.getId()));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public ToolExecutionResult execute(InterviewSession session,
+                                       ChatResponse.ToolCall toolCall,
+                                       ToolExecutionContext context,
+                                       String requestId,
+                                       String traceId) {
         if (toolCall == null || toolCall.getFunction() == null) {
-            return rejected(ToolExecutionResult.ToolRejectionReason.MISSING_TOOL_NAME,
-                    "工具调用缺少 function");
+            return completeExecution(session, null, context, requestId, traceId,
+                    rejected(ToolExecutionResult.ToolRejectionReason.MISSING_TOOL_NAME,
+                            "工具调用缺少 function"));
         }
 
         String toolName = toolCall.getFunction().getName();
         if (toolName == null || toolName.isBlank()) {
-            return rejected(ToolExecutionResult.ToolRejectionReason.MISSING_TOOL_NAME, "工具名为空");
+            return completeExecution(session, toolName, context, requestId, traceId,
+                    rejected(ToolExecutionResult.ToolRejectionReason.MISSING_TOOL_NAME, "工具名为空"));
         }
         if (context == ToolExecutionContext.FIRST_QUESTION && "finish_interview".equals(toolName)) {
-            return rejected(ToolExecutionResult.ToolRejectionReason.INVALID_FIRST_QUESTION_TOOL,
-                    "首题阶段不允许结束面试");
+            return completeExecution(session, toolName, context, requestId, traceId,
+                    rejected(ToolExecutionResult.ToolRejectionReason.INVALID_FIRST_QUESTION_TOOL,
+                            "首题阶段不允许结束面试"));
         }
 
         Map<String, Object> arguments;
         try {
             String argumentsJson = toolCall.getFunction().getArguments();
             if (argumentsJson == null || argumentsJson.isBlank()) {
-                return rejected(ToolExecutionResult.ToolRejectionReason.INVALID_ARGUMENTS_JSON,
-                        "arguments 为空");
+                return completeExecution(session, toolName, context, requestId, traceId,
+                        rejected(ToolExecutionResult.ToolRejectionReason.INVALID_ARGUMENTS_JSON,
+                                "arguments 为空"));
             }
             arguments = objectMapper.readValue(argumentsJson, new TypeReference<>() { });
         } catch (Exception e) {
             log.warn("[Tool] arguments 解析失败, sessionId={}, toolName={}", session.getId(), toolName, e);
-            return rejected(ToolExecutionResult.ToolRejectionReason.INVALID_ARGUMENTS_JSON,
-                    "arguments 不是合法 JSON 对象");
+            return completeExecution(session, toolName, context, requestId, traceId,
+                    rejected(ToolExecutionResult.ToolRejectionReason.INVALID_ARGUMENTS_JSON,
+                            "arguments 不是合法 JSON 对象"));
         }
 
-        return switch (toolName) {
+        ToolExecutionResult result = switch (toolName) {
             case "ask_followup" -> executeAskFollowup(session, arguments, context);
             case "change_topic" -> executeChangeTopic(session, arguments, context);
             case "finish_interview" -> executeFinishInterview(session, arguments);
             default -> rejected(ToolExecutionResult.ToolRejectionReason.UNKNOWN_TOOL,
                     "未知工具: " + toolName);
         };
+        return completeExecution(session, toolName, context, requestId, traceId, result);
+    }
+
+    private ToolExecutionResult completeExecution(InterviewSession session, String toolName,
+                                                   ToolExecutionContext context, String requestId,
+                                                   String traceId, ToolExecutionResult result) {
+        emitExecutionLog(session, toolName, context, requestId, traceId, result);
+        String decision = result instanceof ToolExecutionResult.Rejected ? "REJECTED" : "EXECUTED";
+        String proficiency = result instanceof ToolExecutionResult.NextQuestion next
+                ? next.proficiencyLevel() : null;
+        agentMetrics.recordToolExecution(context.name(), decision, toolName, proficiency);
+        return result;
+    }
+
+    private void emitExecutionLog(InterviewSession session, String toolName,
+                                  ToolExecutionContext context, String requestId,
+                                  String traceId, ToolExecutionResult result) {
+        String decision = result instanceof ToolExecutionResult.Rejected ? "REJECTED" : "EXECUTED";
+        String errorCode = result instanceof ToolExecutionResult.Rejected rejected
+                ? rejected.reason().name() : null;
+        String proficiency = result instanceof ToolExecutionResult.NextQuestion next
+                ? next.proficiencyLevel() : null;
+        try {
+            turnLogSink.emit(new AgentTurnLogEvent(session.getId(), requestId, traceId,
+                    session.getCurrentRound(), 0, context.name(), null, null, toolName, decision,
+                    null, proficiency, null, null, null, null, errorCode, null));
+        } catch (RuntimeException ignored) {
+            log.warn("[AgentTurnLog] 工具执行轨迹提交失败，忽略日志错误 sessionId={}", session.getId());
+        }
     }
 
     private ToolExecutionResult executeAskFollowup(InterviewSession session,

@@ -355,14 +355,16 @@ function showView(viewName) {
     window.scrollTo(0, 0);
 }
 
-async function apiCall(url, method = 'POST', body = null) {
+async function apiCall(url, method = 'POST', body = null, jsonBody = false) {
     const options = {
         method,
         headers: { 'Authorization': state.token }
     };
     if (body) {
-        options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-        options.body = new URLSearchParams(body).toString();
+        options.headers['Content-Type'] = jsonBody
+            ? 'application/json'
+            : 'application/x-www-form-urlencoded';
+        options.body = jsonBody ? JSON.stringify(body) : new URLSearchParams(body).toString();
     }
 
     let response;
@@ -486,7 +488,9 @@ async function submitAnswer() {
     showLoading(true, '正在评估回答...');
 
     try {
-        const data = await apiCall('/api/session/' + state.sessionId + '/chat', 'POST', { answer });
+        const requestId = crypto.randomUUID();
+        const data = await apiCall('/api/session/' + state.sessionId + '/chat', 'POST',
+            { answer, requestId }, true);
         if (data === null) return;
 
         if (data.finished) {
