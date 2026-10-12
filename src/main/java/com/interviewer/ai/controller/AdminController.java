@@ -44,17 +44,22 @@ public class AdminController {
      * 请求示例：
      * POST /api/admin/invite-codes
      * Header: Admin-Token: <ADMIN_TOKEN>
-     * Body: count=100
+     * Body: count=100&accessDays=7；accessDays=0 表示永不过期
      */
     @PostMapping("/invite-codes")
     public Map<String, Object> generateInviteCodes(
             @RequestHeader("Admin-Token") String token,
-            @RequestParam(defaultValue = "10") int count) {
+            @RequestParam(defaultValue = "10") int count,
+            @RequestParam(defaultValue = "7") int accessDays) {
         
         checkAdmin(token);
         
         if (count < 1 || count > 500) {
             throw new ApiException(ErrorCode.INVALID_ARGUMENT, "数量必须在1-500之间");
+        }
+
+        if (accessDays < 0 || accessDays > 3650) {
+            throw new ApiException(ErrorCode.INVALID_ARGUMENT, "有效天数必须为0-3650，0表示永不过期");
         }
         
         List<String> links = new ArrayList<>();
@@ -65,6 +70,7 @@ public class AdminController {
             InviteCode inviteCode = new InviteCode();
             inviteCode.setCode(code);
             inviteCode.setIsUsed(false);
+            inviteCode.setAccessDays(accessDays == 0 ? null : accessDays);
             inviteCodeMapper.insert(inviteCode);
             
             links.add(baseUrl + "/?invite=" + code);
@@ -72,6 +78,7 @@ public class AdminController {
         
         return Map.of(
             "total", count,
+            "accessDays", accessDays,
             "links", links,
             "message", "批量生成成功，请将链接发送给群友"
         );

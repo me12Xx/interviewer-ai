@@ -118,7 +118,8 @@ public class RagService {
                 
                 // 创建评分问题
                 questions.put(chunkKey, new ScoreQuestion(
-                    "How relevant is this passage to answering the interview question about: " + query,
+                    "How relevant is the passage in `" + chunkKey
+                        + "` to answering the interview question in `query`? Evaluate only this passage.",
                     new String[]{"not_relevant", "somewhat_relevant", "highly_relevant"}
                 ));
             }
@@ -140,7 +141,7 @@ public class RagService {
                 ScoreAnswer scoreAnswer = response.getScore(chunkKey);
                 
                 if (scoreAnswer != null) {
-                    int relevanceScore = getRelevanceScore(scoreAnswer.getScore());
+                    double relevanceScore = scoreAnswer.getScore();
                     double confidence = scoreAnswer.getConfidence();
                     double finalScore = relevanceScore * confidence;
                     
@@ -174,30 +175,16 @@ public class RagService {
     /**
      * 将 Jev 的评分等级转换为数值
      */
-    private int getRelevanceScore(String level) {
-        switch (level) {
-            case "highly_relevant":
-                return 2;
-            case "somewhat_relevant":
-                return 1;
-            case "not_relevant":
-                return 0;
-            default:
-                log.warn("Unknown relevance level: {}", level);
-                return 0;
-        }
-    }
-    
     /**
      * 内部类：带评分的文档块
      */
     private static class ScoredChunk {
         DocumentChunk chunk;
         double finalScore;
-        int relevanceScore;
+        double relevanceScore;
         double confidence;
         
-        ScoredChunk(DocumentChunk chunk, double finalScore, int relevanceScore, double confidence) {
+        ScoredChunk(DocumentChunk chunk, double finalScore, double relevanceScore, double confidence) {
             this.chunk = chunk;
             this.finalScore = finalScore;
             this.relevanceScore = relevanceScore;

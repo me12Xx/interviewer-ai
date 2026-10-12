@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -44,6 +45,10 @@ public class KnowledgeBaseInitializer implements CommandLineRunner {
 
         for (String position : List.of("java", "ai")) {
             Resource[] resources = resolver.getResources("classpath:knowledge/" + position + "/*.md");
+            Arrays.sort(resources, java.util.Comparator.comparing(resource -> {
+                String filename = resource.getFilename();
+                return filename == null ? "" : filename;
+            }));
             resourceCount += resources.length;
             log.info("岗位 {} 资源数量: {}", position, resources.length);
 
@@ -72,7 +77,7 @@ public class KnowledgeBaseInitializer implements CommandLineRunner {
 
                     for (int i = 0; i < batch.size(); i++) {
                         DocumentChunk chunk = new DocumentChunk();
-                        chunk.setId(generateId(filename, allChunks.size()));
+                         chunk.setId(generateId(filename, from + i));
                         chunk.setText(batch.get(i));
                         chunk.setEmbedding(embeddings.get(i));
                         chunk.setSource(filename);
@@ -97,6 +102,6 @@ public class KnowledgeBaseInitializer implements CommandLineRunner {
     }
     
     private String generateId(String source, int index) {
-        return source.replace(".md", "") + "_chunk_" + index;
+        return source.replaceFirst("\\.md$", "") + "_chunk_" + index;
     }
 }

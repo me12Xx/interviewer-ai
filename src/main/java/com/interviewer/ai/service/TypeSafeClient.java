@@ -156,7 +156,7 @@ public class TypeSafeClient {
         /**
          * 评分结果（criteria 中的某一项）
          */
-        private String score;
+        private Double score;
         
         /**
          * 置信度（0~1，越高越可信）

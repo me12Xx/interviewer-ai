@@ -7,6 +7,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import lombok.Data;
+import lombok.ToString;
 
 @Data
 @Configuration
@@ -14,6 +15,8 @@ import lombok.Data;
 public class AiConfig {
 
     private String apiUrl;
+
+    @ToString.Exclude
     private String apiKey;
     private String model;
     private Integer maxTokens;

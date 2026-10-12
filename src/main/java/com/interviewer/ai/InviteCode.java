@@ -22,4 +22,5 @@ public class InviteCode {
     private Long usedByUserId;
     private LocalDateTime createdAt;
     private LocalDateTime usedAt;
+    private Integer accessDays;
 }

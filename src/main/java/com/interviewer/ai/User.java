@@ -21,4 +21,5 @@ public class User {
     private String accessToken;
     private Boolean isActive;
     private LocalDateTime createdAt;
+    private LocalDateTime accessExpiresAt;
 }

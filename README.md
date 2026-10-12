@@ -360,17 +360,20 @@ CREATE DATABASE interviewer_ai
     COLLATE utf8mb4_unicode_ci;
 ```
 
-初始化基础表后执行增量迁移：
+全新数据库按顺序执行以下脚本：
 
 ```text
+schema.sql
 sql/add_user_table.sql
-migration_v3.sql
+sql/create_invite_code_table.sql
 migration_v4.sql
 ```
 
-`migration_v3.sql` 增加 requestId 幂等记录和 Session Lease。
+全新数据库的 `schema.sql` 已包含 requestId 幂等记录和 Session Lease（V3）；`migration_v4.sql` 创建结构化调用轨迹表 `agent_turn_log`，需要执行一次。不要对全新数据库再运行 `migration_v3.sql`。
 
-`migration_v4.sql` 增加结构化调用轨迹表 `agent_turn_log`。
+`migration_v5.sql` 为已运行至 V4 的数据库增加用户访问过期时间；全新数据库的 `sql/add_user_table.sql` 已包含该字段，不要再执行 V5。旧邀请码关联账号从邀请码使用时间起补算 7 天期限，已超过期限的账号会立即失效。用户表脚本不再创建固定测试账号。
+
+`migration_v6.sql` 为已执行 V5 的数据库增加管理员可配置的邀请码有效期字段。全新数据库的 `sql/create_invite_code_table.sql` 已包含该字段，不需要执行 V6；已运行至 V5 的数据库备份后执行 V6 一次。管理员调用 `POST /api/admin/invite-codes` 时，`accessDays=1-3650` 创建对应天数的账号邀请码，`accessDays=0` 创建注册后永不过期的账号邀请码；不传该参数时默认为 7 天。
 
 迁移脚本是一次性脚本。数据库已经完成对应迁移时，不要重复执行。
 
@@ -388,6 +391,8 @@ $env:TYPESAFE_ENABLED = "false"
 $env:ADMIN_TOKEN = "your-admin-token"
 $env:APP_BASE_URL = "http://localhost:8080"
 ```
+
+API keys 只配置在后端运行环境中，不要写入源码、前端或提交到 Git。`.env` 文件已被 Git 忽略；若某个 key 曾经暴露，应在对应服务商控制台撤销并重新生成，单纯删除聊天消息不会使旧 key 失效。
 
 主要配置：
 
@@ -442,7 +447,7 @@ mvn -q clean test
 
 ### 真实 MySQL 测试
 
-数据库完成 V3/V4 迁移后执行：
+数据库使用上述新建脚本，或完成 V3 至 V6 对应迁移后执行：
 
 ```powershell
 mvn -q -Pmysql-tests test

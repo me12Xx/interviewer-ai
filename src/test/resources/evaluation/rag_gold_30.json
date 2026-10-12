@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "annotation": "人工审核 gold 集：相关块由知识库文本逐条核对，至少一个块可直接支持问题答案。",
+  "knowledge_base": {
+    "positions": ["java"],
+    "id_scheme": "<source_without_md>_chunk_<zero_based_chunk_index>",
+    "splitter": "DocumentSplitter",
+    "embedding_model": "embedding-3"
+  },
+  "cases": [
+    {"id":"gold-01","query":"Spring 的 IoC 和依赖注入分别解决什么问题？","position":"java","relevant_chunk_ids":["Spring框架_chunk_4","Spring框架_chunk_5","Spring框架_chunk_6","Spring框架_chunk_8"],"rationale":"IoC 控制反转及 DI 定义、收益和注入方式。"},
+    {"id":"gold-02","query":"为什么 Spring 官方更推荐构造器注入？","position":"java","relevant_chunk_ids":["Spring框架_chunk_11"],"rationale":"直接说明构造器注入的不可变性和初始化时完成注入。"},
+    {"id":"gold-03","query":"BeanFactory 和 ApplicationContext 有什么区别？","position":"java","relevant_chunk_ids":["Spring框架_chunk_13","Spring框架_chunk_14","Spring框架_chunk_15"],"rationale":"说明懒加载、单例初始化及企业级功能差异。"},
+    {"id":"gold-04","query":"Spring Bean 的生命周期有哪些阶段？","position":"java","relevant_chunk_ids":["Spring框架_chunk_26","Spring框架_chunk_27","Spring框架_chunk_28","Spring框架_chunk_29"],"rationale":"覆盖实例化、属性赋值、初始化和销毁。"},
+    {"id":"gold-05","query":"Spring AOP 中切面、连接点、切入点和通知分别是什么？","position":"java","relevant_chunk_ids":["Spring框架_chunk_32"],"rationale":"该块集中定义 AOP 核心概念。"},
+    {"id":"gold-06","query":"Spring 如何解决循环依赖，有哪些限制？","position":"java","relevant_chunk_ids":["Spring框架_chunk_55"],"rationale":"说明三级缓存及仅支持单例 setter 注入等限制。"},
+    {"id":"gold-07","query":"Redis 的 RDB 和 AOF 持久化有什么区别？","position":"java","relevant_chunk_ids":["Redis_chunk_9","Redis_chunk_12","Redis_chunk_13","Redis_chunk_16"],"rationale":"分别描述快照、写命令记录、性能和数据安全取舍。"},
+    {"id":"gold-08","query":"Redis 的 SAVE 和 BGSAVE 哪个会阻塞服务？","position":"java","relevant_chunk_ids":["Redis_chunk_11"],"rationale":"明确 SAVE 阻塞、BGSAVE 子进程执行。"},
+    {"id":"gold-09","query":"Redis 为什么要同时使用惰性删除和定期删除？","position":"java","relevant_chunk_ids":["Redis_chunk_18","Redis_chunk_19","Redis_chunk_20"],"rationale":"比较两种过期删除策略的 CPU 与内存取舍。"},
+    {"id":"gold-10","query":"Redis 事务支持回滚吗？MULTI 和 EXEC 如何工作？","position":"java","relevant_chunk_ids":["Redis_chunk_31","Redis_chunk_32","Redis_chunk_34","Redis_chunk_36"],"rationale":"说明事务命令流程以及错误时不回滚。"},
+    {"id":"gold-11","query":"Redis 分布式锁如何避免死锁和误删？","position":"java","relevant_chunk_ids":["Redis_chunk_52"],"rationale":"SETNX、过期时间和持有者校验均在该块。"},
+    {"id":"gold-12","query":"MySQL InnoDB 为什么选择 B+ 树作为索引结构？","position":"java","relevant_chunk_ids":["MySQL索引_chunk_7","MySQL索引_chunk_8","MySQL索引_chunk_9","MySQL索引_chunk_11","MySQL索引_chunk_12"],"rationale":"说明叶子链表、IO、高度和范围查询优势。"},
+    {"id":"gold-13","query":"什么是回表，覆盖索引如何避免回表？","position":"java","relevant_chunk_ids":["MySQL索引_chunk_19","MySQL索引_chunk_21"],"rationale":"定义二级索引回表并给出覆盖索引判断。"},
+    {"id":"gold-14","query":"联合索引的最左前缀原则是什么？","position":"java","relevant_chunk_ids":["MySQL索引_chunk_25"],"rationale":"以 name、age 联合索引解释可匹配列。"},
+    {"id":"gold-15","query":"MySQL 索引失效有哪些常见场景？","position":"java","relevant_chunk_ids":["MySQL索引_chunk_43","MySQL索引_chunk_44","MySQL索引_chunk_45","MySQL索引_chunk_46","MySQL索引_chunk_47","MySQL索引_chunk_48","MySQL索引_chunk_49","MySQL索引_chunk_50"],"rationale":"集中列举函数、计算、OR、前导通配符和类型转换等场景。"},
+    {"id":"gold-16","query":"MySQL 的索引下推 ICP 是如何减少回表的？","position":"java","relevant_chunk_ids":["MySQL索引_chunk_30","MySQL索引_chunk_32"],"rationale":"说明在索引遍历阶段先过滤索引字段条件。"},
+    {"id":"gold-17","query":"MySQL 的 ACID 四个特性分别是什么，底层日志如何支持？","position":"java","relevant_chunk_ids":["MySQL事务_chunk_0","MySQL事务_chunk_1","MySQL事务_chunk_2","MySQL事务_chunk_3","MySQL事务_chunk_46","MySQL事务_chunk_47","MySQL事务_chunk_48"],"rationale":"ACID 定义及 undo、redo、binlog 的职责。"},
+    {"id":"gold-18","query":"脏读、不可重复读和幻读有什么区别？","position":"java","relevant_chunk_ids":["MySQL事务_chunk_4","MySQL事务_chunk_5","MySQL事务_chunk_6","MySQL事务_chunk_7"],"rationale":"逐项定义三类并发事务问题。"},
+    {"id":"gold-19","query":"MySQL InnoDB 默认事务隔离级别是什么，如何解决幻读？","position":"java","relevant_chunk_ids":["MySQL事务_chunk_15","MySQL事务_chunk_17","MySQL事务_chunk_18"],"rationale":"默认 RR，以及 MVCC 快照读和临键锁当前读。"},
+    {"id":"gold-20","query":"redo log 和 binlog 有什么区别？为什么需要两阶段提交？","position":"java","relevant_chunk_ids":["MySQL事务_chunk_49","MySQL事务_chunk_50"],"rationale":"直接比较物理日志、逻辑日志和两阶段提交。"},
+    {"id":"gold-21","query":"JDK 8 为什么用元空间替代永久代？","position":"java","relevant_chunk_ids":["JVM内存与GC_chunk_6","JVM内存与GC_chunk_7","JVM内存与GC_chunk_8","JVM内存与GC_chunk_9"],"rationale":"说明本地内存、大小限制和 Full GC 影响。"},
+    {"id":"gold-22","query":"Java 对象的创建过程有哪些步骤？","position":"java","relevant_chunk_ids":["JVM内存与GC_chunk_12","JVM内存与GC_chunk_13","JVM内存与GC_chunk_14","JVM内存与GC_chunk_15","JVM内存与GC_chunk_16","JVM内存与GC_chunk_17"],"rationale":"覆盖类加载检查、分配、零值、对象头和 init。"},
+    {"id":"gold-23","query":"Minor GC、Major GC 和 Full GC 有什么区别？","position":"java","relevant_chunk_ids":["JVM内存与GC_chunk_32","JVM内存与GC_chunk_33","JVM内存与GC_chunk_34"],"rationale":"该块按作用区域和暂停特征比较三种 GC。"},
+    {"id":"gold-24","query":"Java 有哪四种引用类型，弱引用有什么特点？","position":"java","relevant_chunk_ids":["JVM内存与GC_chunk_40","JVM内存与GC_chunk_41","JVM内存与GC_chunk_42","JVM内存与GC_chunk_43"],"rationale":"集中定义强、软、弱、虚引用并说明弱引用回收时机。"},
+    {"id":"gold-25","query":"HashMap JDK 1.8 的底层结构和树化条件是什么？","position":"java","relevant_chunk_ids":["Java集合源码_chunk_1"],"rationale":"数组、链表、红黑树及阈值条件均在该块。"},
+    {"id":"gold-26","query":"HashMap 为什么要求容量是 2 的幂？","position":"java","relevant_chunk_ids":["Java集合源码_chunk_16","Java集合源码_chunk_20"],"rationale":"解释位运算取模和扩容迁移优化。"},
+    {"id":"gold-27","query":"ConcurrentHashMap JDK 1.8 如何保证并发安全？","position":"java","relevant_chunk_ids":["Java集合源码_chunk_38","Java集合源码_chunk_39","Java集合源码_chunk_40","Java集合源码_chunk_41"],"rationale":"说明 CAS、桶级 synchronized 和协同扩容。"},
+    {"id":"gold-28","query":"volatile 能保证什么，为什么不能保证 i++ 的原子性？","position":"java","relevant_chunk_ids":["Java并发进阶_chunk_5","Java并发进阶_chunk_8","Java并发进阶_chunk_10"],"rationale":"分别说明可见性、重排序和复合操作非原子。"},
+    {"id":"gold-29","query":"CAS 的 ABA 问题是什么，Java 如何解决？","position":"java","relevant_chunk_ids":["Java并发进阶_chunk_43","Java并发进阶_chunk_45","Java并发进阶_chunk_46"],"rationale":"定义 ABA 并给出版本号和 AtomicStampedReference。"},
+    {"id":"gold-30","query":"死锁产生的四个必要条件是什么？","position":"java","relevant_chunk_ids":["Java并发基础_chunk_29"],"rationale":"互斥、请求保持、不可剥夺、循环等待四条件。"}
+  ]
+}

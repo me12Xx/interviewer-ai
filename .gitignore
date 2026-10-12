@@ -6,4 +6,12 @@ data/
 logs/
 *.log
 *.docx
-docs/
+.env
+.env.*
+
+# Local research and generated reports
+temp/
+startup_log.txt
+
+# IDE and local tool state
+.opencode/

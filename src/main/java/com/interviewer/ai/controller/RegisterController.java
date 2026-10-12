@@ -9,7 +9,6 @@ import com.interviewer.ai.mapper.UserMapper;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
@@ -65,12 +64,16 @@ public class RegisterController {
         user.setAccessToken("token_" + UUID.randomUUID().toString().replace("-", ""));
         user.setIsActive(true);
         userMapper.insert(user);
-        
+
         // 4. 原子标记邀请码已使用
         int updated = inviteCodeMapper.markUsedIfUnused(
-                inviteCode, user.getId(), LocalDateTime.now());
+                inviteCode, user.getId());
         if (updated == 0) {
             throw new ApiException(ErrorCode.CONFLICT, "邀请码已被使用");
+        }
+
+        if (userMapper.setAccessExpiryFromInvite(user.getId()) != 1) {
+            throw new ApiException(ErrorCode.INTERNAL_ERROR, "账号过期时间设置失败");
         }
         
         // 5. 返回Token

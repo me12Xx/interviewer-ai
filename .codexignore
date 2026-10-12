@@ -4,4 +4,6 @@ data/
 logs/
 *.log
 *.docx
-docs/``
+docs/
+temp/
+startup_log.txt

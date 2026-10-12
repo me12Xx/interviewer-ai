@@ -392,11 +392,11 @@ class OfflineEvaluationCasesTest {
     }
 
     private void recallAtThreeIsCorrect() throws Exception {
-        KnowledgeBaseStorage storage = new KnowledgeBaseStorage();
-        List<DocumentChunk> chunks = storage.load().stream()
-                .filter(chunk -> "java".equals(chunk.getPosition()))
-                .toList();
-        assertTrue(chunks.size() >= 2, "local knowledge base must contain at least two Java chunks");
+        List<DocumentChunk> chunks = List.of(
+                new DocumentChunk("java-gold", "Java gold knowledge", List.of(1.0, 0.0), 0, "java.md", "java"),
+                new DocumentChunk("java-secondary", "Java secondary", List.of(0.8, 0.2), 0, "java.md", "java"));
+        KnowledgeBaseStorage storage = mock(KnowledgeBaseStorage.class);
+        when(storage.load()).thenReturn(chunks);
 
         EmbeddingService embeddingService = mock(EmbeddingService.class);
         TypeSafeClient typeSafeClient = mock(TypeSafeClient.class);

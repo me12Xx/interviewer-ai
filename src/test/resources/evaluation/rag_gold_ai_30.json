@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "annotation": "AI 岗位人工审核 gold 集：每题对应一个 AI 知识块。",
+  "knowledge_base": {
+    "positions": ["ai"],
+    "id_scheme": "AI面试知识库_chunk_<topic_index>",
+    "splitter": "DocumentSplitter",
+    "embedding_model": "embedding-3"
+  },
+  "cases": [
+    {"id":"ai-gold-01","query":"什么是偏差-方差权衡，过拟合和欠拟合分别对应什么问题？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_1"],"rationale":"偏差、方差与泛化误差。"},
+    {"id":"ai-gold-02","query":"L1 和 L2 正则化有什么区别，为什么 L1 能产生稀疏解？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_2"],"rationale":"正则化机理和稀疏性。"},
+    {"id":"ai-gold-03","query":"类别不平衡时为什么不能只看 Accuracy，ROC-AUC 和 PR-AUC 如何选择？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_3"],"rationale":"分类指标和不平衡处理。"},
+    {"id":"ai-gold-04","query":"Transformer 缩放点积注意力为什么要除以 sqrt(d_k)？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_4"],"rationale":"注意力缩放和 softmax 稳定性。"},
+    {"id":"ai-gold-05","query":"多头注意力为什么要把表示拆到多个子空间？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_5"],"rationale":"多头注意力设计动机。"},
+    {"id":"ai-gold-06","query":"LayerNorm 和 BatchNorm 的归一化维度及适用场景有什么不同？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_6"],"rationale":"两种归一化方法比较。"},
+    {"id":"ai-gold-07","query":"大语言模型的预训练、指令微调和偏好对齐分别解决什么问题？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_7"],"rationale":"LLM 三类训练阶段。"},
+    {"id":"ai-gold-08","query":"DPO 相比 PPO 式 RLHF 的主要优势和限制是什么？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_8"],"rationale":"DPO 与 RLHF 对比。"},
+    {"id":"ai-gold-09","query":"BPE 子词分词算法是如何通过合并高频符号构建词表的？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_9"],"rationale":"BPE 原理。"},
+    {"id":"ai-gold-10","query":"RoPE 如何把位置信息和相对位置关系加入 Transformer 注意力？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_10"],"rationale":"旋转位置编码。"},
+    {"id":"ai-gold-11","query":"KV Cache 如何减少自回归解码的重复计算，又带来什么显存代价？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_11"],"rationale":"KV Cache 的收益和成本。"},
+    {"id":"ai-gold-12","query":"FlashAttention 如何通过分块和在线 softmax 降低显存 IO？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_12"],"rationale":"FlashAttention 原理。"},
+    {"id":"ai-gold-13","query":"BM25 稀疏检索和稠密向量检索各自擅长什么，为什么可以混合？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_13"],"rationale":"稀疏、稠密和混合检索。"},
+    {"id":"ai-gold-14","query":"余弦相似度和向量内积有什么区别，什么时候二者相等？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_14"],"rationale":"向量距离度量。"},
+    {"id":"ai-gold-15","query":"HNSW 是什么近似最近邻索引，分层图如何加速搜索？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_15"],"rationale":"HNSW 机制和权衡。"},
+    {"id":"ai-gold-16","query":"RAG 的基本流程是什么，它能解决什么问题又不能保证什么？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_16"],"rationale":"检索增强生成流程。"},
+    {"id":"ai-gold-17","query":"RAG 文本切分为什么要平衡 chunk 粒度和重叠窗口？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_17"],"rationale":"Chunking 策略。"},
+    {"id":"ai-gold-18","query":"向量召回和 Cross-Encoder 重排为什么采用级联架构？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_18"],"rationale":"召回与重排。"},
+    {"id":"ai-gold-19","query":"RAG 如何分别评估检索质量和生成答案的相关性、忠实度？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_19"],"rationale":"RAG 检索和生成评估。"},
+    {"id":"ai-gold-20","query":"什么是直接提示词注入和间接提示词注入，RAG 为什么也会受到影响？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_20"],"rationale":"提示词注入攻击。"},
+    {"id":"ai-gold-21","query":"LLM 应用应该如何用最小权限、服务端校验和工具隔离进行纵深防御？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_21"],"rationale":"LLM 应用安全。"},
+    {"id":"ai-gold-22","query":"ReAct 的思考、行动和观察循环是什么，生产环境为什么要限制步数？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_22"],"rationale":"Agent ReAct 模式。"},
+    {"id":"ai-gold-23","query":"Function Calling 为什么不等于模型直接执行代码，宿主应用必须验证什么？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_23"],"rationale":"工具调用执行边界。"},
+    {"id":"ai-gold-24","query":"Agent 的短期工作记忆和长期外部记忆有什么区别，长期记忆有哪些风险？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_24"],"rationale":"Agent 记忆系统。"},
+    {"id":"ai-gold-25","query":"什么情况下选择 RAG，什么情况下选择微调，二者可以如何组合？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_25"],"rationale":"RAG 与微调选型。"},
+    {"id":"ai-gold-26","query":"LoRA 和 QLoRA 如何减少大模型微调的参数量和显存需求？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_26"],"rationale":"参数高效微调。"},
+    {"id":"ai-gold-27","query":"PTQ 和 QAT 有什么区别，GPTQ、AWQ 的效果为什么需要实测？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_27"],"rationale":"量化方法和评估。"},
+    {"id":"ai-gold-28","query":"PagedAttention 和连续批处理如何改善大模型推理服务的显存利用率和吞吐？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_28"],"rationale":"推理服务优化。"},
+    {"id":"ai-gold-29","query":"大语言模型幻觉是什么，为什么 RAG 也不能保证答案绝对真实？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_29"],"rationale":"幻觉成因和限制。"},
+    {"id":"ai-gold-30","query":"LLM-as-a-Judge 有哪些位置、冗长和自我偏好偏差，如何降低这些偏差？","position":"ai","relevant_chunk_ids":["AI面试知识库_chunk_30"],"rationale":"模型裁判评估偏差。"}
+  ]
+}

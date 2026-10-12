@@ -12,7 +12,7 @@ spring:
     # MySQL 连接配置
     url: jdbc:mysql://localhost:3306/interviewer_ai?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
     username: root
-    password: 123456  # 改为你的数据库密码
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis-plus:

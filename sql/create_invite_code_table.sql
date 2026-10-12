@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS `invite_code` (
     `used_by_user_id` BIGINT NULL COMMENT '被哪个用户使用',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `used_at` DATETIME NULL COMMENT '使用时间',
+    `access_days` INT NULL COMMENT '注册账号有效天数，NULL 表示永不过期',
     INDEX idx_code (`code`),
     INDEX idx_is_used (`is_used`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='邀请码表';
