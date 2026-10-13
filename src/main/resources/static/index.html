@@ -80,6 +80,22 @@ button.secondary:hover:not(:disabled) { background: #EEF2FF; box-shadow: none; }
 button.full { width: 100%; }
 .actions { display: flex; gap: 12px; margin-top: 4px; }
 .actions button { flex: 1; }
+select {
+    width: 100%;
+    font-family: inherit;
+    font-size: 15px;
+    padding: 12px 14px;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 10px;
+    background: #FFFFFF;
+    color: #1F2937;
+    transition: border-color .2s, box-shadow .2s;
+}
+select:focus {
+    outline: none;
+    border-color: #4F46E5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
 .question-box {
     background: #F9FAFB;
     border-left: 4px solid #4F46E5;
@@ -255,6 +271,14 @@ button.full { width: 100%; }
         <input type="text" id="targetPosition" placeholder="例如：Java 后端开发工程师">
     </div>
 
+    <div class="field">
+        <label for="position">面试方向</label>
+        <select id="position">
+            <option value="java">Java 后端开发</option>
+            <option value="ai">人工智能 / 大模型</option>
+        </select>
+    </div>
+
     <button class="full" id="startBtn" onclick="startInterview()">开始面试</button>
 </div>
 
@@ -385,7 +409,14 @@ async function apiCall(url, method = 'POST', body = null, jsonBody = false) {
         return null;
     }
     if (!response.ok) {
-        throw new Error('请求失败: ' + response.status);
+        let message = '请求失败（' + response.status + '）';
+        try {
+            const error = await response.json();
+            if (error && error.message) message = error.message;
+        } catch (_) {
+            // Some errors may not have a JSON response body.
+        }
+        throw new Error(message);
     }
 
     const contentType = response.headers.get('content-type');
@@ -439,6 +470,7 @@ async function register() {
 async function startInterview() {
     const resumeText = document.getElementById('resumeText').value.trim();
     const targetPosition = document.getElementById('targetPosition').value.trim();
+    const position = document.getElementById('position').value;
 
     if (!state.token) { alert('登录已失效，请重新获取邀请链接'); showView('noAccess'); return; }
     if (!resumeText || !targetPosition) { alert('请填写完整信息'); return; }
@@ -447,7 +479,7 @@ async function startInterview() {
     showLoading(true, '正在创建面试...');
 
     try {
-        const data = await apiCall('/api/session', 'POST', { resumeText, targetPosition });
+        const data = await apiCall('/api/session', 'POST', { resumeText, targetPosition, position });
         if (!data) return;
 
         state.sessionId = data.sessionId;
@@ -715,7 +747,7 @@ async function loadAssessments() {
     if (!state.sessionId) return;
 
     try {
-        const assessments = await apiCall(`/session/${state.sessionId}/assessments`, 'GET');
+        const assessments = await apiCall(`/api/session/${state.sessionId}/assessments`, 'GET');
         renderAssessments(assessments);
     } catch (error) {
         console.warn('逐题分析加载失败:', error);
